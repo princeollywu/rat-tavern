@@ -903,6 +903,7 @@
       <div style="color:var(--parchment-deep);font-style:italic">Roll the dice to attack!</div>
     </div>
     <button class="btn-roll" id="btn-roll" onclick="rollCombat()">🎲 Roll Dice!</button>
+    <button id="btn-ability" onclick="useAbility()" style="display:none;margin-top:8px;padding:10px 22px;background:linear-gradient(135deg,#7b2fbe,#a855f7);color:#fff;border:none;border-radius:8px;font-size:1rem;cursor:pointer;font-family:inherit;box-shadow:0 0 12px rgba(168,85,247,0.5);">🛡️ Use Ability</button>
     <button class="btn-close-combat" id="btn-close-combat" onclick="closeCombat()">Continue →</button>
   </div>
 </div>
@@ -930,11 +931,13 @@ const IMG_CYCLOPS = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAUD
 const CHARACTERS = {
   robot: {
     name: 'Robot', sprite: '🤖', img: IMG_ROBOT,
-    atk: 3, def: 8, spd: 9, maxHp: 20
+    atk: 3, def: 8, spd: 9, maxHp: 20,
+    ability: { name: 'Shield Bash', desc: 'Block all counter-attack damage this round', icon: '🛡️' }
   },
   cyclops: {
     name: 'Cyclops', sprite: '👁️', img: IMG_CYCLOPS,
-    atk: 9, def: 7, spd: 3, maxHp: 25
+    atk: 9, def: 7, spd: 3, maxHp: 25,
+    ability: { name: 'Eye Beam', desc: 'Double your ATK roll this round', icon: '👁️' }
   }
 };
 
@@ -962,8 +965,8 @@ let state = {
   mode: null,
   charSelectStep: 1,
   players: [
-    { charKey: null, hp: 0, maxHp: 0, room: 'start', alive: true, moved: false },
-    { charKey: null, hp: 0, maxHp: 0, room: 'start', alive: true, moved: false }
+    { charKey: null, hp: 0, maxHp: 0, atk: 0, def: 0, room: 'start', alive: true, moved: false, abilityReady: false },
+    { charKey: null, hp: 0, maxHp: 0, atk: 0, def: 0, room: 'start', alive: true, moved: false, abilityReady: false }
   ],
   currentPlayer: 0,
   turn: 1,
@@ -971,7 +974,8 @@ let state = {
   clearedRooms: new Set(),
   chests: new Set(),
   openedChests: new Set(),
-  combat: { active: false, type: null, monsterId: null, rounds: 0 }
+  combat: { active: false, type: null, monsterId: null, rounds: 0 },
+  abilityActive: false
 };
 
 // ============================================================
@@ -1026,9 +1030,12 @@ function startGame() {
     const ch = CHARACTERS[state.players[i].charKey];
     state.players[i].hp = ch.maxHp;
     state.players[i].maxHp = ch.maxHp;
+    state.players[i].atk = ch.atk;
+    state.players[i].def = ch.def;
     state.players[i].room = 'start';
     state.players[i].alive = true;
     state.players[i].moved = false;
+    state.players[i].abilityReady = false;
   }
   state.currentPlayer = 0;
   state.turn = 1;
@@ -1267,6 +1274,11 @@ function tryMove(roomId) {
 
   positionTokens();
 
+  // Random event in non-monster, non-start, non-exit rooms
+  if (roomId !== 'exit' && roomId !== 'start' && !state.roomMonsters[roomId] && Math.random() < 0.25) {
+    triggerRandomEvent(cp);
+  }
+
   if (roomId === 'exit' && state.mode === 'adventure') {
     if (!state.clearedRooms.has('restaurant')) {
       addLog('🔒 The exit is sealed. Defeat the Giant Rat Boss first!');
@@ -1290,6 +1302,19 @@ function tryMove(roomId) {
   updateUI();
 }
 
+function triggerRandomEvent(playerIdx) {
+  const p = state.players[playerIdx];
+  const pName = `Player ${playerIdx+1}`;
+  const events = [
+    () => { p.hp = Math.max(0, p.hp - 4); addLog(`🕷️ A spider trap snaps shut! ${pName} takes 4 damage!`, 'log-combat'); },
+    () => { p.hp = Math.min(p.maxHp, p.hp + 8); addLog(`🍺 ${pName} finds a barrel of ale! +8 HP!`, 'log-event'); },
+    () => { p.atk += 1; addLog(`👻 A spirit blesses ${pName}'s strikes! +1 ATK!`, 'log-event'); },
+    () => { p.def += 2; addLog(`🔮 A magic rune fortifies ${pName}! +2 DEF!`, 'log-event'); },
+    () => { addLog(`💨 The room is eerily quiet…`, 'log-move'); },
+  ];
+  events[Math.floor(Math.random() * events.length)]();
+}
+
 // ============================================================
 //  COMBAT
 // ============================================================
@@ -1297,6 +1322,8 @@ let combatContext = null;
 
 function startCombat() {
   const cp = state.currentPlayer;
+  state.players[cp].abilityReady = true;
+  state.abilityActive = false;
   const curPlayer = state.players[cp];
   const roomMonster = state.roomMonsters[curPlayer.room];
   const otherPlayer = state.players[1 - cp];
@@ -1342,8 +1369,32 @@ function openCombatModal(title) {
   document.getElementById('btn-roll').style.display = 'block';
   document.getElementById('btn-roll').disabled = false;
   document.getElementById('btn-close-combat').style.display = 'none';
+  const btnAbility = document.getElementById('btn-ability');
+  const cp = state.currentPlayer;
+  const p = state.players[cp];
+  const char = CHARACTERS[p.charKey];
+  if (p.abilityReady) {
+    btnAbility.style.display = 'block';
+    btnAbility.disabled = false;
+    btnAbility.textContent = `${char.ability.icon} ${char.ability.name}`;
+    btnAbility.title = char.ability.desc;
+  } else {
+    btnAbility.style.display = 'none';
+  }
   document.getElementById('combat-modal').style.display = 'flex';
   state.combat.rounds = 0;
+}
+
+function useAbility() {
+  const cp = state.currentPlayer;
+  const p = state.players[cp];
+  if (!p.abilityReady) return;
+  p.abilityReady = false;
+  state.abilityActive = true;
+  const char = CHARACTERS[p.charKey];
+  addLog(`✨ ${char.name} uses ${char.ability.name}! ${char.ability.desc}`, 'log-event');
+  document.getElementById('btn-ability').disabled = true;
+  rollCombat();
 }
 
 function rollCombat() {
@@ -1360,20 +1411,34 @@ function rollCombat() {
     const defender = state.players[combatContext.target];
     const defChar = CHARACTERS[defender.charKey];
     defName = defChar.name; defIcon = defChar.sprite;
-    defHp = defender.hp; defAtk = defChar.atk; defDef = defChar.def;
+    defHp = defender.hp; defAtk = defChar.atk; defDef = defender.def;
   }
 
-  const atkRoll = Math.ceil(Math.random() * 6);
+  let atkRoll = Math.ceil(Math.random() * 6);
   const defRoll = Math.ceil(Math.random() * 6);
-  const atkTotal = atkChar.atk + atkRoll;
+
+  // Apply ability effects before damage calculation
+  if (state.abilityActive && attacker.charKey === 'cyclops') {
+    atkRoll *= 2;
+    addLog(`👁️ Eye Beam! ATK roll doubled!`, 'log-event');
+  }
+
+  const atkTotal = attacker.atk + atkRoll;
   const defTotal = defDef + defRoll;
   const damage = Math.max(1, atkTotal - defTotal);
 
   const ctrRoll = Math.ceil(Math.random() * 6);
   const ctrDefRoll = Math.ceil(Math.random() * 6);
   const ctrTotal = defAtk + ctrRoll;
-  const ctrDefTotal = atkChar.def + ctrDefRoll;
-  const counterDmg = Math.max(0, ctrTotal - ctrDefTotal);
+  const ctrDefTotal = attacker.def + ctrDefRoll;
+  let counterDmg = Math.max(0, ctrTotal - ctrDefTotal);
+
+  if (state.abilityActive && attacker.charKey === 'robot') {
+    counterDmg = 0;
+    addLog(`🛡️ Shield Bash blocks the counter-attack!`, 'log-event');
+  }
+
+  state.abilityActive = false;
 
   state.combat.rounds++;
 
@@ -1383,7 +1448,7 @@ function rollCombat() {
     attacker.hp -= counterDmg;
 
     const html = `
-      <div class="dice-result">🎲 You rolled: <span>${atkRoll}</span> (ATK ${atkChar.atk} + ${atkRoll} = ${atkTotal})</div>
+      <div class="dice-result">🎲 You rolled: <span>${atkRoll}</span> (ATK ${attacker.atk} + ${atkRoll} = ${atkTotal})</div>
       <div class="dice-result">🛡 ${defName} defence: <span>${defRoll}</span> (DEF ${defDef} + ${defRoll} = ${defTotal})</div>
       <div class="dice-result" style="color:#ff9999">💥 Damage dealt: <span>${damage}</span> | ${defName} HP: ${Math.max(0,m.currentHp)}</div>
       ${counterDmg > 0 ? `<div class="dice-result" style="color:#ffaaaa">🗡 Counter-attack! You take <span>${counterDmg}</span> damage! Your HP: ${Math.max(0,attacker.hp)}</div>` : '<div class="dice-result" style="color:#aaffaa">🛡 You blocked the counter-attack!</div>'}
@@ -1400,6 +1465,7 @@ function rollCombat() {
       document.getElementById('dice-area').innerHTML += `<div class="combat-outcome">🏆 ${defName} defeated! Room cleared!</div>`;
       addLog(`✅ ${defName} defeated! Room cleared.`, 'log-win');
       document.getElementById('btn-roll').style.display = 'none';
+      document.getElementById('btn-ability').style.display = 'none';
       document.getElementById('btn-close-combat').style.display = 'block';
       if (combatContext.roomId === 'restaurant') {
         addLog('🎉 The Giant Rat Boss falls! What a hero!', 'log-win');
@@ -1409,6 +1475,7 @@ function rollCombat() {
       addLog(`💀 Player ${cp+1} was defeated!`, 'log-combat');
       document.getElementById('dice-area').innerHTML += `<div class="combat-outcome" style="color:#ff5555">💀 You were defeated by the ${defName}!</div>`;
       document.getElementById('btn-roll').style.display = 'none';
+      document.getElementById('btn-ability').style.display = 'none';
       document.getElementById('btn-close-combat').style.display = 'block';
     } else {
       document.getElementById('dice-area').innerHTML += `<div class="combat-outcome">${defName} has ${Math.max(0,m.currentHp)} HP left. Roll again!</div>`;
@@ -1420,8 +1487,8 @@ function rollCombat() {
     attacker.hp -= counterDmg;
 
     const html = `
-      <div class="dice-result">🎲 You rolled: <span>${atkRoll}</span> (ATK ${atkChar.atk} + ${atkRoll} = ${atkTotal})</div>
-      <div class="dice-result">🛡 ${defChar.name} defence: <span>${defRoll}</span> (DEF ${defChar.def} + ${defRoll} = ${defTotal})</div>
+      <div class="dice-result">🎲 You rolled: <span>${atkRoll}</span> (ATK ${attacker.atk} + ${atkRoll} = ${atkTotal})</div>
+      <div class="dice-result">🛡 ${defChar.name} defence: <span>${defRoll}</span> (DEF ${defender.def} + ${defRoll} = ${defTotal})</div>
       <div class="dice-result" style="color:#ff9999">💥 Damage dealt: <span>${damage}</span> | ${defChar.name} HP: ${Math.max(0,defender.hp)}</div>
       ${counterDmg > 0 ? `<div class="dice-result" style="color:#ffaaaa">🗡 Counter-attack! You take <span>${counterDmg}</span> damage!</div>` : '<div class="dice-result" style="color:#aaffaa">🛡 You blocked the counter-attack!</div>'}
     `;
@@ -1437,6 +1504,7 @@ function rollCombat() {
       document.getElementById('dice-area').innerHTML += `<div class="combat-outcome">🏆 Player ${combatContext.target+1} defeated!</div>`;
       addLog(`💀 Player ${combatContext.target+1} has been defeated!`, 'log-win');
       document.getElementById('btn-roll').style.display = 'none';
+      document.getElementById('btn-ability').style.display = 'none';
       document.getElementById('btn-close-combat').style.display = 'block';
       checkWinCondition();
     } else if (attacker.hp <= 0) {
@@ -1444,6 +1512,7 @@ function rollCombat() {
       document.getElementById('dice-area').innerHTML += `<div class="combat-outcome" style="color:#ff5555">💀 You were defeated!</div>`;
       addLog(`💀 Player ${cp+1} has been defeated!`, 'log-combat');
       document.getElementById('btn-roll').style.display = 'none';
+      document.getElementById('btn-ability').style.display = 'none';
       document.getElementById('btn-close-combat').style.display = 'block';
       checkWinCondition();
     } else {
