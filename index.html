@@ -800,9 +800,9 @@
         <path d="M 90 120 Q 75 80 70 50" class="map-path" stroke="rgba(100,200,100,0.4)"/>
 
         <!-- ROOMS -->
-        <ellipse id="room-start" cx="120" cy="455" rx="40" ry="28" class="map-room" onclick="tryMove('start')" data-room="start"/>
-        <text x="120" y="451" class="room-label" font-size="9">ENTRANCE</text>
-        <text x="120" y="463" class="room-label" font-size="9">🚪</text>
+        <ellipse id="room-start" cx="755" cy="470" rx="40" ry="28" class="map-room" onclick="tryMove('start')" data-room="start"/>
+        <text x="755" y="466" class="room-label" font-size="9">SOUTH</text>
+        <text x="755" y="478" class="room-label" font-size="9">GATE 🚪</text>
 
         <ellipse id="room-guest" cx="190" cy="340" rx="65" ry="45" class="map-room has-monster-weak" onclick="tryMove('guest')" data-room="guest"/>
         <text x="190" y="333" class="room-label">GUEST</text>
@@ -833,15 +833,9 @@
         <text x="755" y="378" class="room-label" font-size="10">💀</text>
         <text x="755" y="393" class="room-label" font-size="9" fill="#ff6666">⚠ BOSS ⚠</text>
 
-        <circle id="room-lower1" cx="295" cy="468" r="22" class="map-room" onclick="tryMove('lower1')" data-room="lower1"/>
-        <text x="295" y="472" class="room-label" font-size="9">PATH</text>
-
-        <circle id="room-lower2" cx="510" cy="468" r="22" class="map-room" onclick="tryMove('lower2')" data-room="lower2"/>
-        <text x="510" y="472" class="room-label" font-size="9">PATH</text>
-
-        <circle id="room-lower3" cx="635" cy="458" r="22" class="map-room has-monster-weak" onclick="tryMove('lower3')" data-room="lower3"/>
-        <text x="635" y="454" class="room-label" font-size="8">💀</text>
-        <text x="635" y="466" class="room-label" font-size="8">ALLEY</text>
+        <text x="295" y="475" text-anchor="middle" font-size="24">🪨</text>
+        <text x="510" y="475" text-anchor="middle" font-size="24">🪨</text>
+        <text x="635" y="465" text-anchor="middle" font-size="24">🪨</text>
 
         <ellipse id="room-exit" cx="80" cy="80" rx="35" ry="25" class="map-room" onclick="tryMove('exit')" data-room="exit" stroke="#aaffaa" stroke-width="2"/>
         <text x="80" y="74" class="room-label" font-size="9" fill="#aaffaa">EXIT</text>
@@ -945,23 +939,20 @@ const CHARACTERS = {
 };
 
 const ROOMS = {
-  start:      { label: 'Entrance',    cx: 120, cy: 455, monster: null,       connects: ['guest','lower1'] },
-  guest:      { label: 'Guest Room',  cx: 190, cy: 340, monster: 'skeleton', connects: ['start','cat','meeting','lower1'] },
+  start:      { label: 'South Gate',   cx: 755, cy: 470, monster: null,       connects: ['restaurant'] },
+  guest:      { label: 'Guest Room',  cx: 190, cy: 340, monster: 'skeleton', connects: ['start','cat','meeting'] },
   cat:        { label: 'Cat Room',    cx: 150, cy: 210, monster: 'skeleton', connects: ['guest','exit'] },
-  meeting:    { label: 'Meeting Room',cx: 400, cy: 255, monster: 'guardrat', connects: ['guest','bedroom','lower1'] },
-  bedroom:    { label: 'Bedroom',     cx: 590, cy: 258, monster: 'guardrat', connects: ['meeting','kitchen','restaurant','lower2'] },
+  meeting:    { label: 'Meeting Room',cx: 400, cy: 255, monster: 'guardrat', connects: ['guest','bedroom'] },
+  bedroom:    { label: 'Bedroom',     cx: 590, cy: 258, monster: 'guardrat', connects: ['meeting','kitchen','restaurant'] },
   kitchen:    { label: 'Kitchen',     cx: 760, cy: 185, monster: 'guardrat', connects: ['bedroom','restaurant'] },
-  restaurant: { label: 'Restaurant',  cx: 755, cy: 375, monster: 'boss',     connects: ['kitchen','bedroom','lower3'] },
-  lower1:     { label: 'Path',        cx: 295, cy: 468, monster: null,       connects: ['start','guest','meeting','lower2'] },
-  lower2:     { label: 'Path',        cx: 510, cy: 468, monster: null,       connects: ['lower1','bedroom','lower3'] },
-  lower3:     { label: 'Alley',       cx: 635, cy: 458, monster: 'skeleton', connects: ['lower2','restaurant'] },
+  restaurant: { label: 'Restaurant',  cx: 755, cy: 375, monster: 'boss',     connects: ['kitchen','bedroom'] },
   exit:       { label: 'EXIT! 🐍',   cx: 80,  cy: 80,  monster: null,       connects: ['cat'] }
 };
 
 const MONSTERS = {
-  skeleton: { name: 'Skeleton',       icon: '💀', hp: 6,  atk: 3, def: 2 },
-  guardrat: { name: 'Guard Rat',      icon: '🐀', hp: 12, atk: 6, def: 4 },
-  boss:     { name: 'Giant Rat Boss', icon: '👑', hp: 25, atk: 9, def: 6 }
+  skeleton: { name: 'Skeleton',       icon: '💀', hp: 10, atk: 5, def: 3 },
+  guardrat: { name: 'Guard Rat',      icon: '🐀', hp: 18, atk: 8, def: 5 },
+  boss:     { name: 'Giant Rat Boss', icon: '👑', hp: 40, atk: 12, def: 8 }
 };
 
 // ============================================================
@@ -978,6 +969,8 @@ let state = {
   turn: 1,
   roomMonsters: {},
   clearedRooms: new Set(),
+  chests: new Set(),
+  openedChests: new Set(),
   combat: { active: false, type: null, monsterId: null, rounds: 0 }
 };
 
@@ -1040,6 +1033,11 @@ function startGame() {
   state.currentPlayer = 0;
   state.turn = 1;
   state.clearedRooms = new Set();
+  state.openedChests = new Set();
+  state.chests = new Set();
+  const chestPool = ['guest','cat','meeting','bedroom','kitchen','restaurant'];
+  const shuffled = chestPool.sort(() => Math.random() - 0.5);
+  shuffled.slice(0, 4).forEach(r => state.chests.add(r));
 
   state.roomMonsters = {};
   Object.entries(ROOMS).forEach(([id, room]) => {
@@ -1164,6 +1162,58 @@ function updateUI() {
       else if (mType === 'boss') el.classList.add('has-monster-boss');
     }
   });
+
+  // Render chest icons on the SVG map
+  document.querySelectorAll('.map-chest-icon').forEach(e => e.remove());
+  if (state.chests) {
+    state.chests.forEach(id => {
+      if (state.openedChests.has(id)) return;
+      const room = ROOMS[id];
+      if (!room) return;
+      const svg = document.getElementById('map-svg');
+      const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      t.setAttribute('x', room.cx);
+      t.setAttribute('y', room.cy - 20);
+      t.setAttribute('text-anchor', 'middle');
+      t.setAttribute('font-size', '16');
+      t.setAttribute('class', 'map-chest-icon');
+      t.textContent = '📦';
+      svg.appendChild(t);
+    });
+  }
+
+  // Show/hide Open Chest button
+  const existingChestBtn = document.getElementById('btn-open-chest');
+  if (existingChestBtn) existingChestBtn.remove();
+  const curRoom = state.players[cp].room;
+  if (state.chests && state.chests.has(curRoom) && !state.openedChests.has(curRoom)) {
+    const actionBtns = document.querySelector('.action-btns');
+    if (actionBtns) {
+      const chestBtn = document.createElement('button');
+      chestBtn.id = 'btn-open-chest';
+      chestBtn.className = 'btn-attack';
+      chestBtn.style.background = 'linear-gradient(135deg, #8B6914, #c9a227)';
+      chestBtn.textContent = 'Open Chest 📦';
+      chestBtn.onclick = openChest;
+      actionBtns.appendChild(chestBtn);
+    }
+  }
+}
+
+function openChest() {
+  const cp = state.currentPlayer;
+  const curRoom = state.players[cp].room;
+  if (!state.chests.has(curRoom) || state.openedChests.has(curRoom)) return;
+  state.openedChests.add(curRoom);
+  const buffs = ['atk+3','def+3','hp+8'];
+  const buff = buffs[Math.floor(Math.random() * buffs.length)];
+  const p = state.players[cp];
+  let buffDesc = '';
+  if (buff === 'atk+3') { p.atk = (p.atk || CHARACTERS[p.charKey].atk || 0) + 3; buffDesc = '+3 ATK'; }
+  else if (buff === 'def+3') { p.def = (p.def || CHARACTERS[p.charKey].def || 0) + 3; buffDesc = '+3 DEF'; }
+  else if (buff === 'hp+8') { p.hp += 8; p.maxHp += 8; buffDesc = '+8 HP'; }
+  addLog(`🎁 Player ${cp+1} opened a chest! Gained ${buffDesc}!`, 'log-event');
+  updateUI();
 }
 
 function updateHpBar(idx) {
@@ -1218,10 +1268,11 @@ function tryMove(roomId) {
   positionTokens();
 
   if (roomId === 'exit' && state.mode === 'adventure') {
-    addLog(`🎉 Player ${cp+1} reached the EXIT!`, 'log-win');
+    if (!state.clearedRooms.has('restaurant')) {
+      addLog('🔒 The exit is sealed. Defeat the Giant Rat Boss first!');
+      return;
+    }
     triggerWin(cp, 'adventure');
-    updateUI();
-    return;
   }
 
   if (state.roomMonsters[roomId]) {
