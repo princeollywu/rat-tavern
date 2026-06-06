@@ -1115,7 +1115,7 @@ const CHARACTERS = {
   }
 };
 
-const ROOMS = {
+const ROOMS_B1 = {
   start:      { label: 'South Gate',   cx: 755, cy: 470, monster: null,       connects: ['restaurant'] },
   guest:      { label: 'Guest Room',  cx: 190, cy: 340, monster: 'skeleton', connects: ['start','cat','meeting'] },
   cat:        { label: 'Cat Room',    cx: 150, cy: 210, monster: 'skeleton', connects: ['guest','exit'] },
@@ -1126,17 +1126,45 @@ const ROOMS = {
   exit:       { label: 'EXIT! 🐍',   cx: 80,  cy: 80,  monster: null,       connects: ['cat'] }
 };
 
-const MONSTERS = {
+const MONSTERS_B1 = {
   skeleton: { name: 'Skeleton',       icon: '💀', hp: 10, atk: 5, def: 3 },
   guardrat: { name: 'Guard Rat',      icon: '🐀', hp: 18, atk: 8, def: 5 },
   boss:     { name: 'Giant Rat Boss', icon: '👑', hp: 40, atk: 12, def: 8 }
 };
+
+const ROOMS_B3 = {
+  start:         { label: 'Volcano Entrance', cx: 800, cy: 460, monster: null,           connects: ['ash_plains','sulfur_caves'], secret: false },
+  ash_plains:    { label: 'Ash Plains',       cx: 640, cy: 410, monster: 'vol_slug',     connects: ['start','lava_river'], secret: false },
+  sulfur_caves:  { label: 'Sulfur Caves',     cx: 740, cy: 320, monster: 'vol_slug',     connects: ['start','hidden_grotto'], secret: false },
+  hidden_grotto: { label: 'Hidden Grotto',    cx: 840, cy: 230, monster: null,           connects: ['sulfur_caves'], secret: true },
+  lava_river:    { label: 'Lava River',       cx: 500, cy: 370, monster: 'vol_slug',     connects: ['ash_plains','magma_chamber','lava_tube'], secret: false },
+  lava_tube:     { label: 'Lava Tube',        cx: 480, cy: 460, monster: null,           connects: ['lava_river'], secret: true },
+  magma_chamber: { label: 'Magma Chamber',    cx: 370, cy: 310, monster: 'lava_monster', connects: ['lava_river','obsidian_hall'], secret: false },
+  obsidian_hall: { label: 'Obsidian Hall',    cx: 240, cy: 350, monster: 'lava_monster', connects: ['magma_chamber','fire_pit','ancient_altar'], secret: false },
+  ancient_altar: { label: 'Ancient Altar',    cx: 140, cy: 430, monster: null,           connects: ['obsidian_hall'], secret: true },
+  fire_pit:      { label: 'Fire Pit',         cx: 160, cy: 270, monster: 'lava_monster', connects: ['obsidian_hall','ember_bridge'], secret: false },
+  ember_bridge:  { label: 'Ember Bridge',     cx: 300, cy: 200, monster: 'lava_monster', connects: ['fire_pit','scorched_peak'], secret: false },
+  scorched_peak: { label: 'Scorched Peak',    cx: 460, cy: 160, monster: 'lava_monster', connects: ['ember_bridge','crater_rim'], secret: false },
+  crater_rim:    { label: 'Crater Rim',       cx: 610, cy: 120, monster: null,           connects: ['scorched_peak','curtain'], secret: false },
+  curtain:       { label: '🎭 Curtain Room',  cx: 740, cy: 80,  monster: null,           connects: ['crater_rim','exit'], secret: false, locked: true },
+  exit:          { label: 'EXIT 🌋',          cx: 100, cy: 60,  monster: null,           connects: ['curtain'], secret: false }
+};
+
+const MONSTERS_B3 = {
+  vol_slug:     { name: 'Volcanic Slug',  icon: '🐌', hp: 12, atk: 6,  def: 2 },
+  lava_monster: { name: 'Lava Monster',   icon: '🔥', hp: 22, atk: 10, def: 6 }
+};
+
+let ROOMS = ROOMS_B1;
+let MONSTERS = MONSTERS_B1;
 
 // ============================================================
 //  GAME STATE
 // ============================================================
 let state = {
   mode: null,
+  board: 1,
+  eruptionActive: false,
   charSelectStep: 1,
   players: [
     { charKey: null, hp: 0, maxHp: 0, atk: 0, def: 0, room: 'start', alive: true, moved: false, abilityReady: false },
@@ -1170,6 +1198,12 @@ function goBack(to) {
 
 function selectMode(mode) {
   state.mode = mode;
+  document.getElementById('board-select').style.display = 'flex';
+}
+
+function selectBoard(board) {
+  state.board = board;
+  document.getElementById('board-select').style.display = 'none';
   state.charSelectStep = 1;
   state.players[0].charKey = null;
   state.players[1].charKey = null;
@@ -1200,6 +1234,20 @@ function selectChar(charKey) {
 //  GAME START
 // ============================================================
 function startGame() {
+  // Set up board data
+  if (state.board === 3) {
+    ROOMS = ROOMS_B3;
+    MONSTERS = MONSTERS_B3;
+  } else {
+    ROOMS = ROOMS_B1;
+    MONSTERS = MONSTERS_B1;
+  }
+  state.eruptionActive = false;
+
+  // Show correct map
+  document.getElementById('map-b1').style.display = state.board === 3 ? 'none' : '';
+  document.getElementById('map-b3').style.display = state.board === 3 ? '' : 'none';
+
   for (let i = 0; i < 2; i++) {
     const ch = CHARACTERS[state.players[i].charKey];
     state.players[i].hp = ch.maxHp;
@@ -1216,7 +1264,9 @@ function startGame() {
   state.clearedRooms = new Set();
   state.openedChests = new Set();
   state.chests = new Set();
-  const chestPool = ['guest','cat','meeting','bedroom','kitchen','restaurant'];
+  const chestPool = state.board === 3
+    ? ['ash_plains','sulfur_caves','lava_river','magma_chamber','obsidian_hall','fire_pit','ember_bridge','scorched_peak']
+    : ['guest','cat','meeting','bedroom','kitchen','restaurant'];
   const shuffled = chestPool.sort(() => Math.random() - 0.5);
   shuffled.slice(0, 4).forEach(r => state.chests.add(r));
 
@@ -1244,8 +1294,13 @@ function startGame() {
 
   document.getElementById('mode-tag').textContent = state.mode === 'battle' ? '⚔️ Battle Mode' : '🗺️ Adventure Mode';
   document.getElementById('game-log').innerHTML = '';
-  addLog('🏰 Welcome to the Rat Tavern! Both players start at the Entrance.', 'log-event');
-  addLog('⚔️ Monsters lurk in the rooms... beware!', 'log-event');
+  if (state.board === 3) {
+    addLog('🌋 Welcome to the Volcano Lair! Defeat all monsters to unlock the Curtain Room!', 'log-event');
+    addLog('🔥 The volcano rumbles with danger... beware!', 'log-event');
+  } else {
+    addLog('🏰 Welcome to the Rat Tavern! Both players start at the Entrance.', 'log-event');
+    addLog('⚔️ Monsters lurk in the rooms... beware!', 'log-event');
+  }
 
   updateUI();
   positionTokens();
@@ -1443,19 +1498,45 @@ function tryMove(roomId) {
     addLog(`You can't reach ${ROOMS[roomId].label} from here!`, 'log-event'); return;
   }
 
+  // Curtain Room lock check (Board 3)
+  if (roomId === 'curtain' && state.board === 3) {
+    const monsterRooms = Object.keys(ROOMS).filter(id => ROOMS[id].monster);
+    const allCleared = monsterRooms.every(id => state.clearedRooms.has(id));
+    if (!allCleared) {
+      const remaining = monsterRooms.filter(id => !state.clearedRooms.has(id)).length;
+      addLog(`🔒 The Curtain Room is sealed! ${remaining} monster room(s) still need clearing!`, 'log-event');
+      return;
+    }
+  }
+
   curPlayer.room = roomId;
   curPlayer.moved = true;
   const chName = CHARACTERS[curPlayer.charKey].name;
   addLog(`Player ${cp+1} (${chName}) moved to ${ROOMS[roomId].label}.`, 'log-move');
 
-  positionTokens();
-
-  // Random event in non-monster, non-start, non-exit rooms
-  if (roomId !== 'exit' && roomId !== 'start' && !state.roomMonsters[roomId] && Math.random() < 0.25) {
-    triggerRandomEvent(cp);
+  // Eruption trigger when entering curtain room on Board 3
+  if (roomId === 'curtain' && state.board === 3 && !state.eruptionActive) {
+    state.eruptionActive = true;
+    addLog('🌋 THE VOLCANO ERUPTS! Both players take 3 damage every turn! REACH THE EXIT!', 'log-combat');
   }
 
-  if (roomId === 'exit' && state.mode === 'adventure') {
+  positionTokens();
+
+  // Secret room events (Board 3: always trigger; others: 25% chance)
+  if (roomId !== 'exit' && roomId !== 'start' && !state.roomMonsters[roomId]) {
+    if (state.board === 3 && ROOMS[roomId].secret) {
+      triggerRandomEvent(cp);
+    } else if (state.board !== 3 && Math.random() < 0.25) {
+      triggerRandomEvent(cp);
+    }
+  }
+
+  // Exit conditions
+  if (roomId === 'exit' && state.board === 3) {
+    triggerWin(cp, 'volcano_escape');
+    return;
+  }
+  if (roomId === 'exit' && state.mode === 'adventure' && state.board !== 3) {
     if (!state.clearedRooms.has('restaurant')) {
       addLog('🔒 The exit is sealed. Defeat the Giant Rat Boss first!');
       return;
