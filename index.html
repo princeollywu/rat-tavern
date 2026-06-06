@@ -189,7 +189,7 @@
     text-align: center;
   }
 
-  .char-card.selected-p1 { border-color: var(--player1); box-shadow: 0 0 20px rgba(154,168,176,0.5); }
+  .char-card.selected-p1 { border-color: var(--player1); box-shadow: 0 0 20px rgba(154,168,176,0.5); opacity: 0.55; pointer-events: none; cursor: default; }
   .char-card.selected-p2 { border-color: var(--player2); box-shadow: 0 0 20px rgba(45,138,78,0.5); }
   .char-card:hover { transform: scale(1.03); border-color: var(--gold); }
 
@@ -999,7 +999,13 @@ function selectMode(mode) {
   state.charSelectStep = 1;
   state.players[0].charKey = null;
   state.players[1].charKey = null;
-  document.querySelectorAll('.char-card').forEach(c => c.classList.remove('selected-p1','selected-p2'));
+  document.querySelectorAll('.char-card').forEach(c => {
+    c.classList.remove('selected-p1','selected-p2');
+    c.style.borderColor = '';
+    c.style.boxShadow = '';
+    const nameEl = c.querySelector('.char-name');
+    if (nameEl) nameEl.textContent = nameEl.textContent.replace(/ ✓ \(P1\)/, '');
+  });
   document.getElementById('char-screen-sub').textContent = 'Player 1 — pick your fighter!';
   showScreen('char-screen');
 }
@@ -1011,6 +1017,15 @@ function selectChar(charKey) {
     document.getElementById('card-' + charKey).classList.add('selected-p1');
     state.charSelectStep = 2;
     document.getElementById('char-screen-sub').textContent = 'Player 2 — pick your fighter!';
+    // Dim P1's card and highlight the other one for P2
+    document.querySelectorAll('.char-card').forEach(c => {
+      if (c.classList.contains('selected-p1')) {
+        c.querySelector('.char-name').textContent = c.querySelector('.char-name').textContent.split(' ✓')[0] + ' ✓ (P1)';
+      } else {
+        c.style.borderColor = 'var(--gold)';
+        c.style.boxShadow = '0 0 20px rgba(201,162,39,0.5)';
+      }
+    });
   } else {
     if (charKey === state.players[0].charKey) {
       alert('Player 2 must pick a different character!'); return;
