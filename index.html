@@ -1536,8 +1536,9 @@ function updateUI() {
   document.getElementById('btn-attack').disabled = !(canAttackMonster || canAttackPlayer);
   document.getElementById('btn-attack').textContent = canAttackPlayer && !roomMonster ? '⚔️ Attack Player!' : '⚔️ Attack!';
 
+  const activeSvgForRooms = document.getElementById(state.board === 3 ? 'map-svg-b3' : 'map-svg');
   Object.keys(ROOMS).forEach(id => {
-    const el = document.getElementById('room-' + id);
+    const el = activeSvgForRooms ? activeSvgForRooms.querySelector('[data-room="' + id + '"]') : document.getElementById('room-' + id);
     if (!el) return;
     el.classList.remove('room-cleared','has-monster-weak','has-monster-medium','has-monster-boss','room-locked');
     if (state.clearedRooms.has(id)) {
