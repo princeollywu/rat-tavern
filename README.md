@@ -1,6 +1,6 @@
 # 🐀 Rat Tavern — The Board Game
 
-A digital board game built with HTML, CSS and JavaScript. Play it here: **[your-username.github.io/rat-tavern]()**
+A digital board game built with HTML, CSS and JavaScript. Play it here: **[princeollywu.github.io/rat-tavern](https://princeollywu.github.io/rat-tavern)**
 
 ---
 
