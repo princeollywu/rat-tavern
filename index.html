@@ -1453,11 +1453,11 @@ function startGame() {
   const p0 = state.players[0], p1 = state.players[1];
   const ch0 = CHARACTERS[p0.charKey], ch1 = CHARACTERS[p1.charKey];
 
-  // Update player panel images to the correct characters
+  // Update player panel images to the correct characters (elements may not exist for all boards)
   const p1Img = document.getElementById('p1-panel-img');
   const p2Img = document.getElementById('p2-panel-img');
-  if (ch0.img) { p1Img.src = ch0.img; p1Img.style.display = ''; } else { p1Img.style.display = 'none'; }
-  if (ch1.img) { p2Img.src = ch1.img; p2Img.style.display = ''; } else { p2Img.style.display = 'none'; }
+  if (p1Img) { if (ch0.img) { p1Img.src = ch0.img; p1Img.style.display = ''; } else { p1Img.style.display = 'none'; } }
+  if (p2Img) { if (ch1.img) { p2Img.src = ch1.img; p2Img.style.display = ''; } else { p2Img.style.display = 'none'; } }
   document.getElementById('p1-name').textContent = `Player 1 — ${ch0.name}`;
   document.getElementById('p2-name').textContent = `Player 2 — ${ch1.name}`;
 
