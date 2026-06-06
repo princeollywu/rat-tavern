@@ -671,6 +671,11 @@
         <h2>Board 1</h2>
         <p>The Rat Tavern — defeat the Giant Rat Boss and escape!</p>
       </div>
+      <div class="mode-card" onclick="selectBoard(2)">
+        <span class="mode-icon">⚗️</span>
+        <h2>Board 2</h2>
+        <p>The Sewers — defeat the Slime Lord and find the exit!</p>
+      </div>
       <div class="mode-card" onclick="selectBoard(3)">
         <span class="mode-icon">🌋</span>
         <h2>Board 3</h2>
@@ -1345,6 +1350,7 @@ function selectMode(mode) {
 }
 
 function selectBoard(board) {
+  if (board === 2) { window.location.href = 'board2.html'; return; }
   state.board = board;
   document.getElementById('board-select').style.display = 'none';
   state.charSelectStep = 1;
