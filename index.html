@@ -1484,25 +1484,20 @@ function updateTokenImages() {
   // P1 token image
   const p1img = document.querySelector('#token-p1 image');
   const p2img = document.querySelector('#token-p2 image');
-  const ch0 = CHARACTERS[state.players[0].charKey];
-  const ch1 = CHARACTERS[state.players[1].charKey];
 
-  // Robot offsets: x=-37.71, y=-60.57
-  // Cyclops offsets: x=-109.71, y=-61.71
+  // Only robot and cyclops have portrait images; others use emoji sprites
   const offsets = {
     robot:   { x: -37.71,  y: -60.57 },
     cyclops: { x: -109.71, y: -61.71 }
   };
 
   if (p1img) {
-    const o = offsets[ch0.charKey || state.players[0].charKey];
-    p1img.setAttribute('x', o.x);
-    p1img.setAttribute('y', o.y);
+    const o = offsets[state.players[0].charKey];
+    if (o) { p1img.setAttribute('x', o.x); p1img.setAttribute('y', o.y); }
   }
   if (p2img) {
-    const o = offsets[ch1.charKey || state.players[1].charKey];
-    p2img.setAttribute('x', o.x);
-    p2img.setAttribute('y', o.y);
+    const o = offsets[state.players[1].charKey];
+    if (o) { p2img.setAttribute('x', o.x); p2img.setAttribute('y', o.y); }
   }
 }
 
