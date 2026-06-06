@@ -1340,6 +1340,7 @@ function goBack(to) {
   document.getElementById('combat-modal').style.display = 'none';
   if (to === 'title') {
     document.getElementById('board-select').style.display = 'none';
+    localStorage.setItem('rt_unlocked', JSON.stringify([1]));
     showScreen('title-screen');
   }
 }
