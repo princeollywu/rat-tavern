@@ -671,15 +671,15 @@
         <h2>Board 1</h2>
         <p>The Rat Tavern — defeat the Giant Rat Boss and escape!</p>
       </div>
-      <div class="mode-card" id="board-card-2" onclick="selectBoard(2)" style="opacity:0.4;cursor:not-allowed;pointer-events:none;">
+      <div class="mode-card" id="board2-card" onclick="selectBoard(2)" style="opacity:0.4;cursor:not-allowed;pointer-events:none;">
         <span class="mode-icon">🔒</span>
         <h2>Board 2</h2>
         <p>Complete Board 1 to unlock.</p>
       </div>
-      <div class="mode-card" id="board-card-3" onclick="selectBoard(3)" style="opacity:0.4;cursor:not-allowed;pointer-events:none;">
+      <div class="mode-card" id="board3-card" onclick="selectBoard(3)" style="opacity:0.4;cursor:not-allowed;pointer-events:none;">
         <span class="mode-icon">🔒</span>
         <h2>Board 3</h2>
-        <p>Complete Board 2 to unlock.</p>
+        <p>Complete Board 2 to unlock.
       </div>
     </div>
   </div>
@@ -1354,7 +1354,8 @@ function selectMode(mode) {
 function refreshBoardLocks() {
   const unlocked = JSON.parse(localStorage.getItem('rt_unlocked') || '[1]');
   [1, 2, 3].forEach(b => {
-    const card = document.getElementById('board-card-' + b);
+    const idMap = { 1: 'board-card-1', 2: 'board2-card', 3: 'board3-card' };
+    const card = document.getElementById(idMap[b]);
     if (!card) return;
     const isUnlocked = unlocked.includes(b);
     if (isUnlocked) {
@@ -1378,6 +1379,7 @@ function refreshBoardLocks() {
 }
 
 function selectBoard(board) {
+  if (board === 2) { window.location.href = 'board2.html'; return; }
   state.board = board;
   document.getElementById('board-select').style.display = 'none';
   state.charSelectStep = 1;
@@ -1391,13 +1393,21 @@ function selectBoard(board) {
 function selectChar(charKey) {
   if (state.charSelectStep === 1) {
     state.players[0].charKey = charKey;
-    document.querySelectorAll('.char-card').forEach(c => c.classList.remove('selected-p1'));
-    document.getElementById('card-' + charKey).classList.add('selected-p1');
+    document.querySelectorAll('.char-card').forEach(c => {
+      c.classList.remove('selected-p1');
+      c.style.opacity = '';
+      c.style.pointerEvents = '';
+    });
+    const p1Card = document.getElementById('card-' + charKey);
+    p1Card.classList.add('selected-p1');
+    // Grey out P1's card so P2 can't re-pick it
+    p1Card.style.opacity = '0.4';
+    p1Card.style.pointerEvents = 'none';
     state.charSelectStep = 2;
     document.getElementById('char-screen-sub').textContent = 'Player 2 — pick your fighter!';
   } else {
     if (charKey === state.players[0].charKey) {
-      alert('Player 2 must pick a different character!'); return;
+      return; // card is greyed out so this shouldn't fire, but just in case
     }
     state.players[1].charKey = charKey;
     document.querySelectorAll('.char-card').forEach(c => c.classList.remove('selected-p2'));
@@ -1457,11 +1467,11 @@ function startGame() {
   const p0 = state.players[0], p1 = state.players[1];
   const ch0 = CHARACTERS[p0.charKey], ch1 = CHARACTERS[p1.charKey];
 
-  // Update player panel images to the correct characters
+  // Update player panel images to the correct characters (elements may not exist for all boards)
   const p1Img = document.getElementById('p1-panel-img');
   const p2Img = document.getElementById('p2-panel-img');
-  if (ch0.img) { p1Img.src = ch0.img; p1Img.style.display = ''; } else { p1Img.style.display = 'none'; }
-  if (ch1.img) { p2Img.src = ch1.img; p2Img.style.display = ''; } else { p2Img.style.display = 'none'; }
+  if (p1Img) { if (ch0.img) { p1Img.src = ch0.img; p1Img.style.display = ''; } else { p1Img.style.display = 'none'; } }
+  if (p2Img) { if (ch1.img) { p2Img.src = ch1.img; p2Img.style.display = ''; } else { p2Img.style.display = 'none'; } }
   document.getElementById('p1-name').textContent = `Player 1 — ${ch0.name}`;
   document.getElementById('p2-name').textContent = `Player 2 — ${ch1.name}`;
 
@@ -1488,25 +1498,20 @@ function updateTokenImages() {
   // P1 token image
   const p1img = document.querySelector('#token-p1 image');
   const p2img = document.querySelector('#token-p2 image');
-  const ch0 = CHARACTERS[state.players[0].charKey];
-  const ch1 = CHARACTERS[state.players[1].charKey];
 
-  // Robot offsets: x=-37.71, y=-60.57
-  // Cyclops offsets: x=-109.71, y=-61.71
+  // Only robot and cyclops have portrait images; others use emoji sprites
   const offsets = {
     robot:   { x: -37.71,  y: -60.57 },
     cyclops: { x: -109.71, y: -61.71 }
   };
 
   if (p1img) {
-    const o = offsets[ch0.charKey || state.players[0].charKey];
-    p1img.setAttribute('x', o.x);
-    p1img.setAttribute('y', o.y);
+    const o = offsets[state.players[0].charKey];
+    if (o) { p1img.setAttribute('x', o.x); p1img.setAttribute('y', o.y); }
   }
   if (p2img) {
-    const o = offsets[ch1.charKey || state.players[1].charKey];
-    p2img.setAttribute('x', o.x);
-    p2img.setAttribute('y', o.y);
+    const o = offsets[state.players[1].charKey];
+    if (o) { p2img.setAttribute('x', o.x); p2img.setAttribute('y', o.y); }
   }
 }
 
@@ -2128,6 +2133,12 @@ function addLog(msg, cls='') {
 //  INIT
 // ============================================================
 showScreen('title-screen');
+// Auto-launch Board 3 if redirected from Board 2
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get('board') === '3' && localStorage.getItem('board2complete')) {
+  selectMode('adventure');
+  selectBoard(3);
+}
 </script>
 </body>
 </html>

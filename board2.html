@@ -550,6 +550,54 @@
       <div class="char-stat">🛡️ DEF: 7</div>
       <div class="char-ability">👁️ Eye Beam — double your ATK roll this round</div>
     </div>
+    <div class="char-card" id="card-witch" onclick="selectChar('witch')">
+      <span class="char-sprite">🧙</span>
+      <div class="char-name">Witch</div>
+      <div class="char-stat">❤️ HP: 18</div>
+      <div class="char-stat">⚔️ ATK: 10</div>
+      <div class="char-stat">🛡️ DEF: 4</div>
+      <div class="char-ability">🧙 Hex — halve the enemy's DEF this round</div>
+    </div>
+    <div class="char-card" id="card-knight" onclick="selectChar('knight')">
+      <span class="char-sprite">⚔️</span>
+      <div class="char-name">Knight</div>
+      <div class="char-stat">❤️ HP: 30</div>
+      <div class="char-stat">⚔️ ATK: 5</div>
+      <div class="char-stat">🛡️ DEF: 12</div>
+      <div class="char-ability">⚔️ Counter Strike — bonus damage equal to hits blocked</div>
+    </div>
+    <div class="char-card" id="card-ninja" onclick="selectChar('ninja')">
+      <span class="char-sprite">🥷</span>
+      <div class="char-name">Ninja</div>
+      <div class="char-stat">❤️ HP: 18</div>
+      <div class="char-stat">⚔️ ATK: 6</div>
+      <div class="char-stat">🛡️ DEF: 5</div>
+      <div class="char-ability">🥷 Smoke Bomb — evade the counter-attack entirely</div>
+    </div>
+    <div class="char-card" id="card-dragon" onclick="selectChar('dragon')">
+      <span class="char-sprite">🐉</span>
+      <div class="char-name">Dragon</div>
+      <div class="char-stat">❤️ HP: 35</div>
+      <div class="char-stat">⚔️ ATK: 11</div>
+      <div class="char-stat">🛡️ DEF: 6</div>
+      <div class="char-ability">🐉 Fire Breath — deal +6 bonus fire damage this round</div>
+    </div>
+    <div class="char-card" id="card-ghost" onclick="selectChar('ghost')">
+      <span class="char-sprite">👻</span>
+      <div class="char-name">Ghost</div>
+      <div class="char-stat">❤️ HP: 15</div>
+      <div class="char-stat">⚔️ ATK: 7</div>
+      <div class="char-stat">🛡️ DEF: 3</div>
+      <div class="char-ability">👻 Phase — 50% chance to phase through counter-attack</div>
+    </div>
+    <div class="char-card" id="card-goblin" onclick="selectChar('goblin')">
+      <span class="char-sprite">👺</span>
+      <div class="char-name">Goblin</div>
+      <div class="char-stat">❤️ HP: 22</div>
+      <div class="char-stat">⚔️ ATK: 8</div>
+      <div class="char-stat">🛡️ DEF: 6</div>
+      <div class="char-ability">👺 Steal — gain +ATK equal to half enemy DEF</div>
+    </div>
   </div>
 </div>
 
@@ -775,6 +823,7 @@
     <p id="win-sub">You escaped the Sewers!</p>
     <div style="margin-bottom:1.5rem;font-size:3rem">💧🐀💧</div>
     <button class="btn-restart" onclick="goBack('title')">↩ Back to Title</button>
+    <button class="btn-restart" id="btn-board3" onclick="window.location.href='index.html?board=3'" style="display:none;margin-top:0.75rem;background:linear-gradient(135deg,#3a1a0a,#7a3010);border-color:#c05010;color:#ffa060">🌋 Continue to Board 3</button>
   </div>
 </div>
 
@@ -784,16 +833,14 @@
 // ============================================================
 
 const CHARACTERS = {
-  robot: {
-    name: 'Robot', sprite: '🤖',
-    atk: 3, def: 8, maxHp: 20,
-    ability: { name: 'Shield Bash', desc: 'Block all counter-attack damage this round', icon: '🛡️' }
-  },
-  cyclops: {
-    name: 'Cyclops', sprite: '👁️',
-    atk: 9, def: 7, maxHp: 25,
-    ability: { name: 'Eye Beam', desc: 'Double your ATK roll this round', icon: '👁️' }
-  }
+  robot:   { name: 'Robot',   sprite: '🤖', atk: 3,  def: 8,  maxHp: 20, ability: { name: 'Shield Bash',    desc: 'Block all counter-attack damage this round',         icon: '🛡️' } },
+  cyclops: { name: 'Cyclops', sprite: '👁️', atk: 9,  def: 7,  maxHp: 25, ability: { name: 'Eye Beam',       desc: 'Double your ATK roll this round',                    icon: '👁️' } },
+  witch:   { name: 'Witch',   sprite: '🧙', atk: 10, def: 4,  maxHp: 18, ability: { name: 'Hex',            desc: "Halve the enemy's DEF this round",                   icon: '🧙' } },
+  knight:  { name: 'Knight',  sprite: '⚔️', atk: 5,  def: 12, maxHp: 30, ability: { name: 'Counter Strike', desc: 'Deal bonus damage equal to hits you block this round',icon: '⚔️' } },
+  ninja:   { name: 'Ninja',   sprite: '🥷', atk: 6,  def: 5,  maxHp: 18, ability: { name: 'Smoke Bomb',     desc: 'Evade the counter-attack entirely this round',        icon: '🥷' } },
+  dragon:  { name: 'Dragon',  sprite: '🐉', atk: 11, def: 6,  maxHp: 35, ability: { name: 'Fire Breath',    desc: 'Deal +6 bonus fire damage this round',                icon: '🐉' } },
+  ghost:   { name: 'Ghost',   sprite: '👻', atk: 7,  def: 3,  maxHp: 15, ability: { name: 'Phase',          desc: '50% chance to phase through the counter-attack',      icon: '👻' } },
+  goblin:  { name: 'Goblin',  sprite: '👺', atk: 8,  def: 6,  maxHp: 22, ability: { name: 'Steal',          desc: 'Gain +ATK equal to half the enemy DEF this round',   icon: '👺' } }
 };
 
 // ===== ROOMS =====
@@ -868,12 +915,20 @@ function selectMode(mode) {
 function selectChar(charKey) {
   if (state.charSelectStep === 1) {
     state.players[0].charKey = charKey;
-    document.querySelectorAll('.char-card').forEach(c => c.classList.remove('selected-p1'));
-    document.getElementById('card-' + charKey).classList.add('selected-p1');
+    document.querySelectorAll('.char-card').forEach(c => {
+      c.classList.remove('selected-p1');
+      c.style.opacity = '';
+      c.style.pointerEvents = '';
+    });
+    const p1Card = document.getElementById('card-' + charKey);
+    p1Card.classList.add('selected-p1');
+    // Grey out P1's card so P2 can't re-pick it
+    p1Card.style.opacity = '0.4';
+    p1Card.style.pointerEvents = 'none';
     state.charSelectStep = 2;
     document.getElementById('char-screen-sub').textContent = 'Player 2 — pick your fighter!';
   } else {
-    if (charKey === state.players[0].charKey) { alert('Player 2 must pick a different character!'); return; }
+    if (charKey === state.players[0].charKey) { return; }
     state.players[1].charKey = charKey;
     document.querySelectorAll('.char-card').forEach(c => c.classList.remove('selected-p2'));
     document.getElementById('card-' + charKey).classList.add('selected-p2');
@@ -1367,9 +1422,11 @@ function endTurn() {
 //  WIN / LOSE
 // ============================================================
 function triggerWin(playerIdx) {
+  localStorage.setItem('board2complete', 'true');
   const ch = CHARACTERS[state.players[playerIdx].charKey];
   document.getElementById('win-sub').textContent =
-    `Player ${playerIdx+1} (${ch.name}) escaped the Sewers! Board 2 Complete! 🟢`;
+    `Board 2 Complete! The Volcano Lair awaits… 🌋`;
+  document.getElementById('btn-board3').style.display = 'block';
   document.getElementById('win-screen').style.display = 'flex';
 }
 
