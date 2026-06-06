@@ -1379,13 +1379,21 @@ function selectBoard(board) {
 function selectChar(charKey) {
   if (state.charSelectStep === 1) {
     state.players[0].charKey = charKey;
-    document.querySelectorAll('.char-card').forEach(c => c.classList.remove('selected-p1'));
-    document.getElementById('card-' + charKey).classList.add('selected-p1');
+    document.querySelectorAll('.char-card').forEach(c => {
+      c.classList.remove('selected-p1');
+      c.style.opacity = '';
+      c.style.pointerEvents = '';
+    });
+    const p1Card = document.getElementById('card-' + charKey);
+    p1Card.classList.add('selected-p1');
+    // Grey out P1's card so P2 can't re-pick it
+    p1Card.style.opacity = '0.4';
+    p1Card.style.pointerEvents = 'none';
     state.charSelectStep = 2;
     document.getElementById('char-screen-sub').textContent = 'Player 2 — pick your fighter!';
   } else {
     if (charKey === state.players[0].charKey) {
-      alert('Player 2 must pick a different character!'); return;
+      return; // card is greyed out so this shouldn't fire, but just in case
     }
     state.players[1].charKey = charKey;
     document.querySelectorAll('.char-card').forEach(c => c.classList.remove('selected-p2'));
