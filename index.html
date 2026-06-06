@@ -666,15 +666,20 @@
   <div id="board-select" style="display:none; flex-direction:column; align-items:center; gap:1rem; margin-top:1.5rem;">
     <p style="font-family:'Cinzel',serif; color:var(--parchment-deep); font-size:1.1rem; letter-spacing:0.2em;">CHOOSE YOUR BOARD</p>
     <div class="mode-cards" style="gap:1rem;">
-      <div class="mode-card" onclick="selectBoard(1)">
+      <div class="mode-card" onclick="selectBoard(1)" id="board-card-1">
         <span class="mode-icon">🏰</span>
         <h2>Board 1</h2>
         <p>The Rat Tavern — defeat the Giant Rat Boss and escape!</p>
       </div>
-      <div class="mode-card" onclick="selectBoard(3)">
-        <span class="mode-icon">🌋</span>
+      <div class="mode-card" id="board-card-2" onclick="selectBoard(2)" style="opacity:0.4;cursor:not-allowed;pointer-events:none;">
+        <span class="mode-icon">🔒</span>
+        <h2>Board 2</h2>
+        <p>Complete Board 1 to unlock.</p>
+      </div>
+      <div class="mode-card" id="board-card-3" onclick="selectBoard(3)" style="opacity:0.4;cursor:not-allowed;pointer-events:none;">
+        <span class="mode-icon">🔒</span>
         <h2>Board 3</h2>
-        <p>Volcano Lair — clear all monsters, survive the eruption, escape!</p>
+        <p>Complete Board 2 to unlock.</p>
       </div>
     </div>
   </div>
@@ -1341,7 +1346,34 @@ function goBack(to) {
 
 function selectMode(mode) {
   state.mode = mode;
+  refreshBoardLocks();
   document.getElementById('board-select').style.display = 'flex';
+}
+
+function refreshBoardLocks() {
+  const unlocked = JSON.parse(localStorage.getItem('rt_unlocked') || '[1]');
+  [1, 2, 3].forEach(b => {
+    const card = document.getElementById('board-card-' + b);
+    if (!card) return;
+    const isUnlocked = unlocked.includes(b);
+    if (isUnlocked) {
+      card.style.opacity = '';
+      card.style.cursor = '';
+      card.style.pointerEvents = '';
+      card.querySelector('h2').textContent = b === 1 ? 'Board 1' : b === 2 ? 'Board 2' : 'Board 3';
+      card.querySelector('p').textContent = b === 1 ? 'The Rat Tavern — defeat the Giant Rat Boss and escape!'
+        : b === 2 ? 'The Sewers — coming soon!'
+        : 'Volcano Lair — clear all monsters, survive the eruption, escape!';
+      card.querySelector('.mode-icon').textContent = b === 1 ? '🏰' : b === 2 ? '⚗️' : '🌋';
+    } else {
+      card.style.opacity = '0.4';
+      card.style.cursor = 'not-allowed';
+      card.style.pointerEvents = 'none';
+      card.querySelector('.mode-icon').textContent = '🔒';
+      card.querySelector('h2').textContent = `Board ${b}`;
+      card.querySelector('p').textContent = `Complete Board ${b - 1} to unlock.`;
+    }
+  });
 }
 
 function selectBoard(board) {
@@ -2038,6 +2070,17 @@ function checkWinCondition() {
   }
 }
 
+function unlockBoard(board) {
+  let unlocked = JSON.parse(localStorage.getItem('rt_unlocked') || '[1]');
+  if (board === null) {
+    // Game complete — reset to only board 1 unlocked
+    unlocked = [1];
+  } else if (!unlocked.includes(board)) {
+    unlocked.push(board);
+  }
+  localStorage.setItem('rt_unlocked', JSON.stringify(unlocked));
+}
+
 function triggerWin(playerIdx, reason) {
   const screen = document.getElementById('win-screen');
   if (screen.style.display === 'flex') return;
@@ -2052,15 +2095,17 @@ function triggerWin(playerIdx, reason) {
       document.getElementById('win-title').textContent = 'VICTORY!';
       document.getElementById('win-sub').textContent = `Player ${playerIdx+1} (${ch.name}) is the last one standing!`;
     } else if (reason === 'adventure') {
+      unlockBoard(2);
       document.getElementById('win-icon').textContent = '🏆';
       document.getElementById('win-title').textContent = 'ESCAPED!';
-      document.getElementById('win-sub').textContent = `Board 1 Complete! The sewers await below…`;
+      document.getElementById('win-sub').textContent = `Board 1 Complete! Board 2 is now unlocked!`;
       document.getElementById('btn-board2').style.display = 'block';
     } else if (reason === 'volcano_escape') {
+      unlockBoard(null); // game complete — lock boards 2 & 3
       const ch = CHARACTERS[state.players[playerIdx].charKey];
-      document.getElementById('win-icon').textContent = '🌋';
-      document.getElementById('win-title').textContent = 'SURVIVED!';
-      document.getElementById('win-sub').textContent = `Player ${playerIdx+1} (${ch.name}) escaped the eruption! Board 3 Complete!`;
+      document.getElementById('win-icon').textContent = '🎆';
+      document.getElementById('win-title').textContent = 'THE END';
+      document.getElementById('win-sub').textContent = `You conquered the Volcano Lair! The adventure is over. Boards 2 & 3 are now locked.`;
     }
     screen.style.display = 'flex';
   }, 400);
