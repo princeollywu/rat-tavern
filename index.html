@@ -1198,6 +1198,7 @@
     <div class="win-title" id="win-title">VICTORY!</div>
     <div class="win-sub" id="win-sub">Player 1 wins the Rat Tavern!</div>
     <button class="btn-play-again" onclick="goBack('title')">Play Again</button>
+    <button class="btn-play-again" id="btn-board2" onclick="window.location.href='board2.html'" style="display:none;margin-top:0.75rem;background:linear-gradient(135deg,#1a3a10,#2d5a14);border-color:#5db025;color:#90df40">⚗️ Continue to Board 2</button>
   </div>
 </div>
 
@@ -2051,10 +2052,10 @@ function triggerWin(playerIdx, reason) {
       document.getElementById('win-title').textContent = 'VICTORY!';
       document.getElementById('win-sub').textContent = `Player ${playerIdx+1} (${ch.name}) is the last one standing!`;
     } else if (reason === 'adventure') {
-      const ch = CHARACTERS[state.players[playerIdx].charKey];
       document.getElementById('win-icon').textContent = '🏆';
       document.getElementById('win-title').textContent = 'ESCAPED!';
-      document.getElementById('win-sub').textContent = `Player ${playerIdx+1} (${ch.name}) escaped the Rat Tavern! Level 1 Complete!`;
+      document.getElementById('win-sub').textContent = `Board 1 Complete! The sewers await below…`;
+      document.getElementById('btn-board2').style.display = 'block';
     } else if (reason === 'volcano_escape') {
       const ch = CHARACTERS[state.players[playerIdx].charKey];
       document.getElementById('win-icon').textContent = '🌋';
