@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rat Tavern — Solo: The Cave</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap');
+
+  /* ============================================================
+     CONFIG / THEME
+  ============================================================ */
+  :root {
+    --ink: #0a0a0f;
+    --stone: #1a1a2a;
+    --stone-mid: #2a2a3a;
+    --parchment: #e8dfc0;
+    --parchment-dark: #c9b88a;
+    --parchment-deep: #a08050;
+    --gold: #c9a227;
+    --gold-bright: #f1c40f;
+    --shadow: #050508;
+    --cave-blue: #1a2a4a;
+    --cave-glow: #4a6aaa;
+    --bat-color: #7a5a9a;
+    --spider-color: #5a8a3a;
+    --troll-color: #8a3a2a;
+    --danger: #cc3333;
+    --safe: #3a8a3a;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--ink);
+    font-family: 'Crimson Text', serif;
+    color: var(--parchment);
+    min-height: 100vh;
+    overflow-x: hidden;
+    background-image:
+      radial-gradient(ellipse at 30% 70%, #0a0a1a 0%, transparent 60%),
+      radial-gradient(ellipse at 70% 20%, #0a1020 0%, transparent 50%);
+  }
+
+  /* ===== TITLE SCREEN ===== */
+  #title-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 2rem;
+    text-align: center;
+  }
+
+  .title-deco {
+    font-size: 2.5rem;
+    opacity: 0.5;
+    letter-spacing: 1.5rem;
+    margin-bottom: 1rem;
+    animation: flicker 4s infinite;
+  }
+
+  @keyframes flicker {
+    0%,100% { opacity: 0.4; }
+    50% { opacity: 0.7; }
+    75% { opacity: 0.2; }
+  }
+
+  h1.game-title {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(2.5rem, 7vw, 5rem);
+    font-weight: 900;
+    color: var(--gold);
+    text-shadow: 0 0 30px rgba(201,162,39,0.5), 2px 2px 0 var(--shadow);
+    letter-spacing: 0.1em;
+    line-height: 1;
+    margin-bottom: 0.2em;
+    animation: titleGlow 2s ease-in-out infinite alternate;
+  }
+
+  @keyframes titleGlow {
+    from { text-shadow: 0 0 20px rgba(201,162,39,0.4), 2px 2px 0 var(--shadow); }
+    to   { text-shadow: 0 0 50px rgba(201,162,39,0.8), 2px 2px 0 var(--shadow); }
+  }
+
+  .subtitle {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(0.9rem, 2.5vw, 1.3rem);
+    color: var(--parchment-deep);
+    letter-spacing: 0.3em;
+    margin-bottom: 2.5rem;
+  }
+
+  .char-cards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: center;
+    max-width: 900px;
+    margin: 0 auto 2rem;
+  }
+
+  .char-card {
+    background: linear-gradient(135deg, #0f0f1a, #1a1a2a);
+    border: 2px solid var(--stone-mid);
+    border-radius: 10px;
+    padding: 1rem 1.2rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 160px;
+    text-align: center;
+  }
+
+  .char-card:hover { border-color: var(--gold); transform: translateY(-3px); }
+  .char-card.selected { border-color: var(--gold-bright); background: linear-gradient(135deg, #1a1a0a, #2a2a10); box-shadow: 0 0 20px rgba(201,162,39,0.4); }
+
+  .char-icon { font-size: 2.5rem; display: block; margin-bottom: 0.4rem; }
+  .char-name { font-family: 'Cinzel', serif; font-size: 0.85rem; color: var(--gold); font-weight: 700; }
+  .char-stats { font-size: 0.75rem; color: var(--parchment-dark); margin-top: 0.3rem; line-height: 1.4; }
+  .char-ability { font-size: 0.7rem; color: var(--cave-glow); margin-top: 0.3rem; font-style: italic; }
+
+  .btn-start {
+    font-family: 'Cinzel', serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    padding: 0.9rem 2.5rem;
+    background: linear-gradient(135deg, #5a3a00, var(--gold));
+    border: 2px solid var(--gold-bright);
+    color: var(--ink);
+    border-radius: 8px;
+    cursor: pointer;
+    letter-spacing: 0.1em;
+    transition: all 0.2s;
+    margin-top: 1rem;
+  }
+  .btn-start:hover { background: var(--gold-bright); box-shadow: 0 0 30px rgba(241,196,15,0.5); transform: translateY(-2px); }
+  .btn-start:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  /* ===== GAME SCREEN ===== */
+  #game-screen {
+    display: none;
+    flex-direction: column;
+    min-height: 100vh;
+    padding: 1rem;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .game-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.7rem 1rem;
+    background: linear-gradient(90deg, var(--stone), var(--cave-blue));
+    border: 1px solid var(--stone-mid);
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  #turn-banner {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(0.85rem, 2vw, 1.1rem);
+    color: var(--gold);
+    font-weight: 700;
+  }
+
+  .btn-back {
+    background: none;
+    border: 1px solid var(--stone-mid);
+    color: var(--parchment-dark);
+    padding: 0.4rem 0.8rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: 'Crimson Text', serif;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+  }
+  .btn-back:hover { border-color: var(--gold); color: var(--gold); }
+
+  .game-body {
+    display: flex;
+    gap: 1rem;
+    flex: 1;
+    flex-wrap: wrap;
+  }
+
+  /* ===== MAP ===== */
+  .map-wrapper { flex: 1; min-width: 300px; }
+  .map-container {
+    background: linear-gradient(135deg, #05050f, #0a0a1a);
+    border: 2px solid var(--cave-blue);
+    border-radius: 10px;
+    padding: 0.5rem;
+    position: relative;
+  }
+  .map-title-overlay {
+    position: absolute;
+    top: 10px; left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Cinzel', serif;
+    font-size: 0.8rem;
+    letter-spacing: 0.3em;
+    color: var(--cave-glow);
+    opacity: 0.6;
+    pointer-events: none;
+    z-index: 2;
+  }
+  #map-svg { width: 100%; height: auto; display: block; }
+
+  /* SVG room styles */
+  .map-path { stroke: var(--cave-glow); stroke-width: 2; fill: none; stroke-dasharray: 6,4; opacity: 0.35; }
+  .map-room { fill: #08081a; stroke: var(--cave-glow); stroke-width: 2; cursor: pointer; transition: fill 0.2s; }
+  .map-room:hover { fill: #12122a; stroke: var(--gold); }
+  .map-room.has-monster-weak  { stroke: var(--bat-color); }
+  .map-room.has-monster-medium { stroke: var(--spider-color); }
+  .map-room.has-monster-boss  { stroke: var(--troll-color); stroke-width: 3; }
+  .map-room.room-cleared { fill: #081a08; stroke: var(--safe); }
+  .map-room.room-boss-dead { fill: #1a0808; stroke: var(--gold-bright); stroke-width: 3; }
+  .room-label { fill: var(--parchment); font-family: 'Crimson Text', serif; font-size: 10px; text-anchor: middle; pointer-events: none; }
+  .room-icon  { font-size: 13px; text-anchor: middle; dominant-baseline: middle; pointer-events: none; }
+
+  /* ===== SIDE PANEL ===== */
+  .side-panel {
+    width: 280px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+  }
+
+  .panel-box {
+    background: linear-gradient(135deg, #0a0a1a, #12122a);
+    border: 1px solid var(--stone-mid);
+    border-radius: 8px;
+    padding: 0.9rem;
+  }
+
+  .panel-title {
+    font-family: 'Cinzel', serif;
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    color: var(--parchment-deep);
+    text-transform: uppercase;
+    margin-bottom: 0.6rem;
+    border-bottom: 1px solid var(--stone-mid);
+    padding-bottom: 0.4rem;
+  }
+
+  .player-name {
+    font-family: 'Cinzel', serif;
+    font-size: 1rem;
+    color: var(--gold);
+    font-weight: 700;
+  }
+
+  .hp-bar-wrap { background: #1a0a0a; border-radius: 4px; height: 12px; margin: 0.5rem 0 0.2rem; overflow: hidden; }
+  .hp-bar { height: 100%; background: linear-gradient(90deg, #8a1a1a, #cc3333); border-radius: 4px; transition: width 0.4s; }
+  .hp-text { font-size: 0.8rem; color: var(--parchment-dark); }
+
+  #p-location { font-size: 0.85rem; color: var(--parchment-dark); margin-top: 0.4rem; }
+  #p-ability-info { font-size: 0.78rem; color: var(--cave-glow); margin-top: 0.3rem; font-style: italic; }
+
+  /* Move buttons */
+  #move-btns { display: flex; flex-direction: column; gap: 0.4rem; }
+  .move-btn {
+    background: linear-gradient(135deg, var(--stone), var(--stone-mid));
+    border: 1px solid var(--cave-blue);
+    color: var(--parchment);
+    padding: 0.5rem 0.8rem;
+    border-radius: 5px;
+    cursor: pointer;
+    font-family: 'Crimson Text', serif;
+    font-size: 0.95rem;
+    text-align: left;
+    transition: all 0.15s;
+  }
+  .move-btn:hover { border-color: var(--gold); background: linear-gradient(135deg, #1a1a2a, #2a2a3a); }
+
+  /* Action buttons */
+  .action-btns { display: flex; flex-direction: column; gap: 0.5rem; }
+  .btn-attack {
+    font-family: 'Cinzel', serif;
+    font-size: 0.9rem;
+    padding: 0.7rem;
+    background: linear-gradient(135deg, #4a0a0a, #8a1a1a);
+    border: 1px solid var(--danger);
+    color: var(--parchment);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-attack:hover:not(:disabled) { background: linear-gradient(135deg, #6a0a0a, #aa2a2a); box-shadow: 0 0 15px rgba(200,50,50,0.4); }
+  .btn-attack:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .btn-end {
+    font-family: 'Cinzel', serif;
+    font-size: 0.9rem;
+    padding: 0.7rem;
+    background: linear-gradient(135deg, var(--stone), var(--stone-mid));
+    border: 1px solid var(--parchment-deep);
+    color: var(--parchment-dark);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-end:hover { border-color: var(--gold); color: var(--gold); }
+
+  /* ===== GAME LOG ===== */
+  #game-log {
+    max-height: 180px;
+    overflow-y: auto;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    scrollbar-width: thin;
+    scrollbar-color: var(--stone-mid) transparent;
+  }
+  .log-entry { padding: 0.15rem 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+  .log-move   { color: var(--parchment-dark); }
+  .log-combat { color: #ff8888; }
+  .log-event  { color: #88aaff; }
+  .log-good   { color: #88cc88; }
+
+  /* ===== COMBAT MODAL ===== */
+  #combat-modal {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+  .combat-box {
+    background: linear-gradient(135deg, #0a0a1a, #15152a);
+    border: 2px solid var(--cave-blue);
+    border-radius: 14px;
+    padding: 2rem;
+    max-width: 480px;
+    width: 90%;
+    text-align: center;
+  }
+  .combat-title {
+    font-family: 'Cinzel', serif;
+    font-size: 1.4rem;
+    color: var(--gold);
+    margin-bottom: 1rem;
+  }
+  .combatants {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    margin-bottom: 1.2rem;
+    gap: 1rem;
+  }
+  .combatant { text-align: center; }
+  .combatant-icon { font-size: 3rem; display: block; margin-bottom: 0.3rem; }
+  .combatant-name { font-family: 'Cinzel', serif; font-size: 0.8rem; color: var(--gold); }
+  .combatant-hp   { font-size: 0.8rem; color: var(--parchment-dark); }
+  .vs { font-family: 'Cinzel', serif; font-size: 1.5rem; color: var(--danger); font-weight: 900; }
+
+  #dice-area { min-height: 80px; margin: 1rem 0; font-size: 0.95rem; line-height: 1.7; }
+  .dice-roll  { font-size: 2rem; }
+  .combat-outcome { font-size: 1rem; font-weight: 600; margin-top: 0.5rem; color: var(--gold); }
+
+  .combat-btns { display: flex; gap: 0.8rem; justify-content: center; flex-wrap: wrap; }
+  .btn-roll {
+    font-family: 'Cinzel', serif;
+    padding: 0.7rem 1.5rem;
+    background: linear-gradient(135deg, #4a0a0a, #8a1a1a);
+    border: 1px solid var(--danger);
+    color: var(--parchment);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+  }
+  .btn-roll:hover { background: linear-gradient(135deg, #6a1010, #aa2020); }
+
+  .btn-ability-solo {
+    font-family: 'Cinzel', serif;
+    padding: 0.7rem 1.5rem;
+    background: linear-gradient(135deg, #0a2a4a, #1a4a8a);
+    border: 1px solid var(--cave-glow);
+    color: var(--parchment);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+  }
+  .btn-ability-solo:hover:not(:disabled) { background: linear-gradient(135deg, #1a3a6a, #2a5aaa); }
+  .btn-ability-solo:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  .btn-close-combat {
+    display: none;
+    font-family: 'Cinzel', serif;
+    padding: 0.7rem 1.5rem;
+    background: linear-gradient(135deg, var(--stone), var(--stone-mid));
+    border: 1px solid var(--parchment-deep);
+    color: var(--parchment);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+  }
+
+  /* ===== WIN/LOSE SCREEN ===== */
+  #end-screen {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.92);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    text-align: center;
+    padding: 2rem;
+  }
+  #end-icon  { font-size: 5rem; margin-bottom: 1rem; animation: popIn 0.5s ease; }
+  #end-title { font-family: 'Cinzel', serif; font-size: clamp(2rem,6vw,3.5rem); font-weight: 900; color: var(--gold); text-shadow: 0 0 30px rgba(201,162,39,0.6); margin-bottom: 0.5rem; }
+  #end-sub   { font-size: 1.1rem; color: var(--parchment-dark); margin-bottom: 2rem; }
+  @keyframes popIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .btn-play-again {
+    font-family: 'Cinzel', serif;
+    font-size: 1rem;
+    padding: 0.8rem 2rem;
+    background: linear-gradient(135deg, #5a3a00, var(--gold));
+    border: 2px solid var(--gold-bright);
+    color: var(--ink);
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 700;
+    transition: all 0.2s;
+  }
+  .btn-play-again:hover { background: var(--gold-bright); box-shadow: 0 0 30px rgba(241,196,15,0.5); }
+
+  @media (max-width: 700px) {
+    .game-body { flex-direction: column; }
+    .side-panel { width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ========== TITLE SCREEN ========== -->
+<div id="title-screen">
+  <div class="title-deco">🕯 🦇 🕯</div>
+  <h1 class="game-title">THE CAVE</h1>
+  <p class="subtitle">Solo Adventure</p>
+  <p style="color:var(--parchment-dark);margin-bottom:1.5rem;font-size:1rem;">Choose your hero, then descend into the cave and slay the Cave Troll!</p>
+
+  <!-- CHARACTER SELECT -->
+  <div class="char-cards" id="char-cards">
+    <div class="char-card" id="card-robot"   onclick="selectChar('robot')">
+      <span class="char-icon">🤖</span>
+      <span class="char-name">Robot</span>
+      <div class="char-stats">ATK 3 · DEF 8 · HP 20</div>
+      <div class="char-ability">🛡 Shield Bash</div>
+    </div>
+    <div class="char-card" id="card-cyclops" onclick="selectChar('cyclops')">
+      <span class="char-icon">👁️</span>
+      <span class="char-name">Cyclops</span>
+      <div class="char-stats">ATK 9 · DEF 7 · HP 25</div>
+      <div class="char-ability">👁 Eye Beam</div>
+    </div>
+    <div class="char-card" id="card-witch"   onclick="selectChar('witch')">
+      <span class="char-icon">🧙</span>
+      <span class="char-name">Witch</span>
+      <div class="char-stats">ATK 10 · DEF 4 · HP 18</div>
+      <div class="char-ability">🧙 Hex</div>
+    </div>
+    <div class="char-card" id="card-knight"  onclick="selectChar('knight')">
+      <span class="char-icon">⚔️</span>
+      <span class="char-name">Knight</span>
+      <div class="char-stats">ATK 5 · DEF 12 · HP 30</div>
+      <div class="char-ability">⚔️ Counter Strike</div>
+    </div>
+    <div class="char-card" id="card-ninja"   onclick="selectChar('ninja')">
+      <span class="char-icon">🥷</span>
+      <span class="char-name">Ninja</span>
+      <div class="char-stats">ATK 6 · DEF 5 · HP 18</div>
+      <div class="char-ability">🥷 Smoke Bomb</div>
+    </div>
+    <div class="char-card" id="card-dragon"  onclick="selectChar('dragon')">
+      <span class="char-icon">🐉</span>
+      <span class="char-name">Dragon</span>
+      <div class="char-stats">ATK 11 · DEF 6 · HP 35</div>
+      <div class="char-ability">🐉 Fire Breath</div>
+    </div>
+    <div class="char-card" id="card-ghost"   onclick="selectChar('ghost')">
+      <span class="char-icon">👻</span>
+      <span class="char-name">Ghost</span>
+      <div class="char-stats">ATK 7 · DEF 3 · HP 15</div>
+      <div class="char-ability">👻 Phase</div>
+    </div>
+    <div class="char-card" id="card-goblin"  onclick="selectChar('goblin')">
+      <span class="char-icon">👺</span>
+      <span class="char-name">Goblin</span>
+      <div class="char-stats">ATK 8 · DEF 6 · HP 22</div>
+      <div class="char-ability">👺 Steal</div>
+    </div>
+  </div>
+
+  <button class="btn-start" id="btn-start" onclick="startGame()" disabled>⚔️ Enter the Cave</button>
+  <br><br>
+  <a href="index.html" style="color:var(--parchment-deep);font-size:0.9rem;text-decoration:none;">← Back to Rat Tavern</a>
+</div>
+
+<!-- ========== GAME SCREEN ========== -->
+<div id="game-screen">
+  <div class="game-header">
+    <div id="turn-banner">Turn 1</div>
+    <button class="btn-back" onclick="goBack()">← Menu</button>
+  </div>
+
+  <div class="game-body">
+
+    <!-- MAP -->
+    <div class="map-wrapper">
+      <div class="map-container">
+        <div class="map-title-overlay">THE CAVE</div>
+
+        <!-- CAVE MAP SVG -->
+        <svg id="map-svg" viewBox="0 0 860 500" xmlns="http://www.w3.org/2000/svg">
+
+          <!-- MAP PATHS -->
+          <path d="M 760 450 Q 720 430 680 410" class="map-path"/>
+          <path d="M 760 450 Q 780 390 790 340" class="map-path"/>
+          <path d="M 660 400 Q 620 370 580 350" class="map-path"/>
+          <path d="M 790 330 Q 770 290 750 260" class="map-path"/>
+          <path d="M 570 340 Q 540 300 510 270" class="map-path"/>
+          <path d="M 750 255 Q 700 240 650 235" class="map-path"/>
+          <path d="M 500 260 Q 460 240 420 230" class="map-path"/>
+          <path d="M 640 230 Q 590 210 540 200" class="map-path"/>
+          <path d="M 410 225 Q 360 210 310 200" class="map-path"/>
+          <path d="M 530 195 Q 480 180 430 170" class="map-path"/>
+          <path d="M 300 195 Q 260 175 220 160" class="map-path"/>
+          <path d="M 420 165 Q 380 150 340 140" class="map-path"/>
+          <path d="M 210 155 Q 170 135 130 115" class="map-path"/>
+          <path d="M 330 135 Q 280 120 230 110" class="map-path"/>
+          <!-- secret room branch paths -->
+          <path d="M 790 330 Q 830 300 840 260" class="map-path" stroke-dasharray="4,6" opacity="0.25"/>
+          <path d="M 570 340 Q 600 390 610 430" class="map-path" stroke-dasharray="4,6" opacity="0.25"/>
+          <path d="M 300 195 Q 270 235 250 270" class="map-path" stroke-dasharray="4,6" opacity="0.25"/>
+
+          <!-- ROOMS -->
+          <!-- Start -->
+          <ellipse id="room-start" cx="760" cy="455" rx="48" ry="30" class="map-room" onclick="tryMove('start')" data-room="start"/>
+          <text x="760" y="451" class="room-label" font-size="9">CAVE</text>
+          <text x="760" y="463" class="room-label" font-size="9">ENTRANCE 🚪</text>
+
+          <!-- Lower cave -->
+          <ellipse id="room-tunnel1" cx="665" cy="405" rx="42" ry="26" class="map-room has-monster-weak" onclick="tryMove('tunnel1')" data-room="tunnel1"/>
+          <text x="665" y="400" class="room-label">DARK TUNNEL</text>
+          <text x="665" y="413" class="room-label" font-size="10">🦇</text>
+
+          <ellipse id="room-grotto1" cx="793" cy="333" rx="38" ry="24" class="map-room has-monster-weak" onclick="tryMove('grotto1')" data-room="grotto1"/>
+          <text x="793" y="328" class="room-label">DRIP</text>
+          <text x="793" y="340" class="room-label">GROTTO 🦇</text>
+
+          <!-- Secret room 1 -->
+          <ellipse id="room-secret1" cx="840" cy="255" rx="32" ry="20" class="map-room" onclick="tryMove('secret1')" data-room="secret1" stroke-dasharray="6,3"/>
+          <text x="840" y="251" class="room-label" font-size="9" fill="#aaa">HIDDEN</text>
+          <text x="840" y="263" class="room-label" font-size="9" fill="#aaa">CREVICE ❓</text>
+
+          <!-- Mid cave -->
+          <ellipse id="room-pool" cx="575" cy="343" rx="44" ry="27" class="map-room has-monster-medium" onclick="tryMove('pool')" data-room="pool"/>
+          <text x="575" y="337" class="room-label">UNDERGROUND</text>
+          <text x="575" y="349" class="room-label">POOL 🕷</text>
+
+          <ellipse id="room-crystal" cx="752" cy="255" rx="42" ry="26" class="map-room has-monster-weak" onclick="tryMove('crystal')" data-room="crystal"/>
+          <text x="752" y="249" class="room-label">CRYSTAL</text>
+          <text x="752" y="261" class="room-label">CHAMBER 🦇</text>
+
+          <!-- Secret room 2 -->
+          <ellipse id="room-secret2" cx="610" cy="435" rx="32" ry="20" class="map-room" onclick="tryMove('secret2')" data-room="secret2" stroke-dasharray="6,3"/>
+          <text x="610" y="430" class="room-label" font-size="9" fill="#aaa">OLD</text>
+          <text x="610" y="442" class="room-label" font-size="9" fill="#aaa">BONES ❓</text>
+
+          <ellipse id="room-mushroom" cx="507" cy="262" rx="44" ry="26" class="map-room has-monster-medium" onclick="tryMove('mushroom')" data-room="mushroom"/>
+          <text x="507" y="256" class="room-label">MUSHROOM</text>
+          <text x="507" y="268" class="room-label">FOREST 🕷</text>
+
+          <ellipse id="room-lakeshore" cx="645" cy="230" rx="44" ry="26" class="map-room has-monster-medium" onclick="tryMove('lakeshore')" data-room="lakeshore"/>
+          <text x="645" y="224" class="room-label">UNDERGROUND</text>
+          <text x="645" y="236" class="room-label">LAKE 🕷</text>
+
+          <!-- Upper cave -->
+          <ellipse id="room-fossil" cx="415" cy="225" rx="40" ry="25" class="map-room has-monster-medium" onclick="tryMove('fossil')" data-room="fossil"/>
+          <text x="415" y="219" class="room-label">FOSSIL</text>
+          <text x="415" y="231" class="room-label">CHAMBER 🕷</text>
+
+          <ellipse id="room-echo" cx="533" cy="197" rx="40" ry="24" class="map-room has-monster-medium" onclick="tryMove('echo')" data-room="echo"/>
+          <text x="533" y="191" class="room-label">ECHO</text>
+          <text x="533" y="203" class="room-label">CAVERN 🕷</text>
+
+          <ellipse id="room-river" cx="307" cy="197" rx="40" ry="24" class="map-room has-monster-weak" onclick="tryMove('river')" data-room="river"/>
+          <text x="307" y="191" class="room-label">UNDERGROUND</text>
+          <text x="307" y="203" class="room-label">RIVER 🦇</text>
+
+          <ellipse id="room-altar" cx="425" cy="165" rx="40" ry="24" class="map-room has-monster-medium" onclick="tryMove('altar')" data-room="altar"/>
+          <text x="425" y="159" class="room-label">ANCIENT</text>
+          <text x="425" y="171" class="room-label">ALTAR 🕷</text>
+
+          <!-- Secret room 3 -->
+          <ellipse id="room-secret3" cx="252" cy="270" rx="32" ry="20" class="map-room" onclick="tryMove('secret3')" data-room="secret3" stroke-dasharray="6,3"/>
+          <text x="252" y="265" class="room-label" font-size="9" fill="#aaa">FLOODED</text>
+          <text x="252" y="277" class="room-label" font-size="9" fill="#aaa">PIT ❓</text>
+
+          <!-- Boss room -->
+          <ellipse id="room-boss" cx="120" cy="115" rx="58" ry="38" class="map-room has-monster-boss" onclick="tryMove('boss')" data-room="boss"/>
+          <text x="120" y="105" class="room-label" font-size="11" fill="#ff9988">TROLL'S</text>
+          <text x="120" y="118" class="room-label" font-size="11" fill="#ff9988">LAIR</text>
+          <text x="120" y="133" class="room-label" font-size="9" fill="#ff6666">⚠ BOSS ⚠</text>
+
+          <!-- PLAYER TOKEN -->
+          <g id="token-p1">
+            <circle r="16" fill="#1a2a4a" stroke="#c9a227" stroke-width="2.5"/>
+            <text x="0" y="6" text-anchor="middle" font-size="16" id="token-sprite">⚔️</text>
+          </g>
+          <text id="label-p1" class="room-label" font-size="9" fill="#c9a227">YOU</text>
+
+        </svg>
+      </div>
+    </div>
+
+    <!-- SIDE PANEL -->
+    <div class="side-panel">
+
+      <!-- Player Info -->
+      <div class="panel-box">
+        <div class="panel-title">Your Hero</div>
+        <div class="player-name" id="p-name">—</div>
+        <div class="hp-bar-wrap"><div class="hp-bar" id="p-hp-bar" style="width:100%"></div></div>
+        <div class="hp-text" id="p-hp-text">— / —</div>
+        <div id="p-location">📍 Cave Entrance</div>
+        <div id="p-ability-info"></div>
+      </div>
+
+      <!-- Move -->
+      <div class="panel-box">
+        <div class="panel-title">Move To</div>
+        <div id="move-btns"></div>
+      </div>
+
+      <!-- Actions -->
+      <div class="panel-box">
+        <div class="panel-title">Actions</div>
+        <div class="action-btns">
+          <button class="btn-attack" id="btn-attack" onclick="startCombat()" disabled>⚔️ Attack!</button>
+          <button class="btn-end" onclick="endTurn()">✅ End Turn</button>
+        </div>
+      </div>
+
+      <!-- Log -->
+      <div class="panel-box">
+        <div class="panel-title">Adventure Log</div>
+        <div id="game-log"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ========== COMBAT MODAL ========== -->
+<div id="combat-modal">
+  <div class="combat-box">
+    <div class="combat-title">⚔️ COMBAT!</div>
+    <div class="combatants">
+      <div class="combatant">
+        <span class="combatant-icon" id="c-hero-icon">⚔️</span>
+        <div class="combatant-name" id="c-hero-name">Hero</div>
+        <div class="combatant-hp"  id="c-hero-hp">HP: —</div>
+      </div>
+      <div class="vs">VS</div>
+      <div class="combatant">
+        <span class="combatant-icon" id="c-enemy-icon">👾</span>
+        <div class="combatant-name" id="c-enemy-name">Enemy</div>
+        <div class="combatant-hp"  id="c-enemy-hp">HP: —</div>
+      </div>
+    </div>
+    <div id="dice-area"></div>
+    <div class="combat-btns">
+      <button class="btn-roll" id="btn-roll" onclick="rollCombat()">🎲 Roll!</button>
+      <button class="btn-ability-solo" id="btn-ability" onclick="useAbility()" disabled>✨ Ability</button>
+      <button class="btn-close-combat" id="btn-close-combat" onclick="closeCombat()">Continue →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== END SCREEN ========== -->
+<div id="end-screen">
+  <div id="end-icon">🏆</div>
+  <div id="end-title">VICTORY!</div>
+  <div id="end-sub">You conquered the cave!</div>
+  <button class="btn-play-again" onclick="goBack()">Play Again</button>
+</div>
+
+<script>
+// ============================================================
+//  CONFIG
+// ============================================================
+
+// ---- CHARACTERS ----
+const CHARACTERS = {
+  robot:   { name: 'Robot',   sprite: '🤖', atk: 3,  def: 8,  maxHp: 20, ability: { name: 'Shield Bash',    desc: 'Block all counter-attack damage this round', icon: '🛡️' } },
+  cyclops: { name: 'Cyclops', sprite: '👁️', atk: 9,  def: 7,  maxHp: 25, ability: { name: 'Eye Beam',       desc: 'Double your ATK roll this round',            icon: '👁️' } },
+  witch:   { name: 'Witch',   sprite: '🧙', atk: 10, def: 4,  maxHp: 18, ability: { name: 'Hex',            desc: "Halve the enemy's DEF this round",           icon: '🧙' } },
+  knight:  { name: 'Knight',  sprite: '⚔️', atk: 5,  def: 12, maxHp: 30, ability: { name: 'Counter Strike', desc: 'Deal bonus damage equal to blocks this round',icon: '⚔️' } },
+  ninja:   { name: 'Ninja',   sprite: '🥷', atk: 6,  def: 5,  maxHp: 18, ability: { name: 'Smoke Bomb',     desc: 'Evade the counter-attack entirely this round', icon: '🥷' } },
+  dragon:  { name: 'Dragon',  sprite: '🐉', atk: 11, def: 6,  maxHp: 35, ability: { name: 'Fire Breath',    desc: 'Deal +6 bonus fire damage this round',        icon: '🐉' } },
+  ghost:   { name: 'Ghost',   sprite: '👻', atk: 7,  def: 3,  maxHp: 15, ability: { name: 'Phase',          desc: '50% chance to phase through counter-attack',  icon: '👻' } },
+  goblin:  { name: 'Goblin',  sprite: '👺', atk: 8,  def: 6,  maxHp: 22, ability: { name: 'Steal',          desc: 'Gain +ATK equal to half enemy DEF this round',icon: '👺' } }
+};
+
+// ---- ROOMS (14 total) ----
+const ROOMS = {
+  start:   { label: 'Cave Entrance',      cx: 760, cy: 455, monster: null,    connects: ['tunnel1','grotto1'] },
+  tunnel1: { label: 'Dark Tunnel',        cx: 665, cy: 405, monster: 'bat',   connects: ['start','pool','secret2'] },
+  grotto1: { label: 'Drip Grotto',        cx: 793, cy: 333, monster: 'bat',   connects: ['start','crystal','secret1'] },
+  secret1: { label: 'Hidden Crevice',     cx: 840, cy: 255, monster: null,    connects: ['grotto1'], secret: true },
+  pool:    { label: 'Underground Pool',   cx: 575, cy: 343, monster: 'spider',connects: ['tunnel1','mushroom','lakeshore'] },
+  crystal: { label: 'Crystal Chamber',   cx: 752, cy: 255, monster: 'bat',   connects: ['grotto1','lakeshore'] },
+  secret2: { label: 'Old Bones',          cx: 610, cy: 435, monster: null,    connects: ['tunnel1'], secret: true },
+  mushroom:{ label: 'Mushroom Forest',    cx: 507, cy: 262, monster: 'spider',connects: ['pool','fossil','echo'] },
+  lakeshore:{ label:'Underground Lake',   cx: 645, cy: 230, monster: 'spider',connects: ['pool','crystal','echo'] },
+  fossil:  { label: 'Fossil Chamber',     cx: 415, cy: 225, monster: 'spider',connects: ['mushroom','river','altar'] },
+  echo:    { label: 'Echo Cavern',        cx: 533, cy: 197, monster: 'spider',connects: ['mushroom','lakeshore','altar'] },
+  river:   { label: 'Underground River',  cx: 307, cy: 197, monster: 'bat',   connects: ['fossil','altar','secret3'] },
+  altar:   { label: 'Ancient Altar',      cx: 425, cy: 165, monster: 'spider',connects: ['fossil','echo','river','boss'] },
+  secret3: { label: 'Flooded Pit',        cx: 252, cy: 270, monster: null,    connects: ['river'], secret: true },
+  boss:    { label: "Troll's Lair",       cx: 120, cy: 115, monster: 'troll', connects: ['altar'] }
+};
+
+// ---- MONSTERS (weaker than 2-player) ----
+const MONSTERS = {
+  bat:    { name: 'Cave Bat',    icon: '🦇', hp: 8,  atk: 4,  def: 2 },
+  spider: { name: 'Giant Spider',icon: '🕷', hp: 14, atk: 7,  def: 4 },
+  troll:  { name: 'Cave Troll',  icon: '🧌', hp: 30, atk: 10, def: 6 }
+};
+
+// ---- RANDOM SURPRISES (one per room visit) ----
+const SURPRISES = [
+  p => { p.hp = Math.max(0, p.hp - 5); return `🕸️ A sticky web snags you! -5 HP.`; },
+  p => { p.hp = Math.max(0, p.hp - 3); return `🪨 A stalactite falls! -3 HP.`; },
+  p => { p.hp = Math.min(p.maxHp, p.hp + 6); return `💧 A cool underground spring! +6 HP.`; },
+  p => { p.hp = Math.min(p.maxHp, p.hp + 4); return `🍄 A healing mushroom! +4 HP.`; },
+  p => { p.atk += 2; return `💎 A glowing crystal empowers you! +2 ATK.`; },
+  p => { p.def += 2; return `🪬 An ancient rune fortifies you! +2 DEF.`; },
+  p => { p.atk += 1; return `🦴 You find a lucky bone. +1 ATK.`; },
+  p => { p.hp = Math.max(0, p.hp - 7); return `💀 A skeleton trap! -7 HP.`; },
+  p => { p.hp = Math.min(p.maxHp, p.hp + 10); return `✨ A magic pool restores you! +10 HP.`; },
+  p => { return `🦇 A bat flies past. Nothing happens…`; },
+  p => { p.hp = Math.max(0, p.hp - 2); return `🌊 You slip on wet rock! -2 HP.`; },
+  p => { p.def += 1; return `🪨 A cave rock makes a great shield! +1 DEF.`; },
+];
+
+// ============================================================
+//  GAME STATE
+// ============================================================
+let state = {
+  charKey: null,
+  player: { charKey: null, hp: 0, maxHp: 0, atk: 0, def: 0, room: 'start', alive: true, moved: false, abilityReady: false, abilityUsed: false },
+  turn: 1,
+  roomMonsters: {},
+  clearedRooms: new Set(),
+  visitedRooms: new Set()
+};
+
+let combatContext = null;
+
+// ============================================================
+//  CHARACTER SELECT
+// ============================================================
+function selectChar(key) {
+  document.querySelectorAll('.char-card').forEach(c => c.classList.remove('selected'));
+  document.getElementById('card-' + key).classList.add('selected');
+  state.charKey = key;
+  document.getElementById('btn-start').disabled = false;
+  document.getElementById('token-sprite').textContent = CHARACTERS[key].sprite;
+}
+
+// ============================================================
+//  GAME START
+// ============================================================
+function startGame() {
+  if (!state.charKey) return;
+  const ch = CHARACTERS[state.charKey];
+  const p = state.player;
+  p.charKey = state.charKey;
+  p.hp = ch.maxHp; p.maxHp = ch.maxHp;
+  p.atk = ch.atk; p.def = ch.def;
+  p.room = 'start'; p.alive = true;
+  p.moved = false; p.abilityReady = false; p.abilityUsed = false;
+  state.turn = 1;
+  state.clearedRooms = new Set();
+  state.visitedRooms = new Set(['start']);
+
+  // Spawn monsters
+  state.roomMonsters = {};
+  Object.entries(ROOMS).forEach(([id, room]) => {
+    if (room.monster) {
+      const m = MONSTERS[room.monster];
+      state.roomMonsters[id] = { ...m, currentHp: m.hp };
+    }
+  });
+
+  document.getElementById('game-log').innerHTML = '';
+  addLog('🕯️ You descend into the cave… Find the Troll\'s Lair and defeat it!', 'log-event');
+  addLog('💡 Every room holds a surprise — good or bad!', 'log-event');
+
+  document.getElementById('title-screen').style.display = 'none';
+  document.getElementById('game-screen').style.display = 'flex';
+
+  updateUI();
+  positionToken();
+}
+
+function goBack() {
+  document.getElementById('end-screen').style.display = 'none';
+  document.getElementById('combat-modal').style.display = 'none';
+  document.getElementById('game-screen').style.display = 'none';
+  document.getElementById('title-screen').style.display = 'flex';
+}
+
+// ============================================================
+//  TOKEN POSITIONING
+// ============================================================
+function positionToken() {
+  const room = ROOMS[state.player.room];
+  const t = document.getElementById('token-p1');
+  const l = document.getElementById('label-p1');
+  t.setAttribute('transform', `translate(${room.cx}, ${room.cy - 5})`);
+  l.setAttribute('x', room.cx);
+  l.setAttribute('y', room.cy + 28);
+}
+
+// ============================================================
+//  UI UPDATE
+// ============================================================
+function updateUI() {
+  const p = state.player;
+  const ch = CHARACTERS[p.charKey];
+
+  // HP
+  const pct = Math.max(0, (p.hp / p.maxHp) * 100);
+  document.getElementById('p-hp-bar').style.width = pct + '%';
+  document.getElementById('p-hp-text').textContent = `${Math.max(0,p.hp)} / ${p.maxHp}`;
+  document.getElementById('p-name').textContent = `${ch.sprite} ${ch.name}`;
+  document.getElementById('p-location').textContent = `📍 ${ROOMS[p.room].label}`;
+  document.getElementById('p-ability-info').textContent = p.abilityReady
+    ? `✨ ${ch.ability.name} ready! — ${ch.ability.desc}`
+    : `Ability used`;
+
+  document.getElementById('turn-banner').textContent = `Turn ${state.turn} — ${ch.sprite} ${ch.name}'s Move`;
+
+  // Attack button
+  const hasMonster = !!state.roomMonsters[p.room];
+  document.getElementById('btn-attack').disabled = !(hasMonster && !p.moved);
+
+  // Move buttons
+  buildMoveButtons();
+
+  // Room colours on map
+  Object.keys(ROOMS).forEach(id => {
+    const el = document.getElementById('room-' + id);
+    if (!el) return;
+    el.classList.remove('room-cleared','has-monster-weak','has-monster-medium','has-monster-boss','room-boss-dead');
+    if (id === 'boss' && state.clearedRooms.has('boss')) {
+      el.classList.add('room-boss-dead');
+    } else if (state.clearedRooms.has(id)) {
+      el.classList.add('room-cleared');
+    } else if (state.roomMonsters[id]) {
+      const mType = ROOMS[id].monster;
+      if (mType === 'bat')    el.classList.add('has-monster-weak');
+      if (mType === 'spider') el.classList.add('has-monster-medium');
+      if (mType === 'troll')  el.classList.add('has-monster-boss');
+    }
+  });
+}
+
+function buildMoveButtons() {
+  const p = state.player;
+  const container = document.getElementById('move-btns');
+  container.innerHTML = '';
+  if (p.moved) {
+    container.innerHTML = '<span style="color:var(--parchment-deep);font-style:italic;font-size:0.9rem">Already moved. Attack or end turn.</span>';
+    return;
+  }
+  ROOMS[p.room].connects.forEach(id => {
+    const room = ROOMS[id];
+    const btn = document.createElement('button');
+    btn.className = 'move-btn';
+    const hasMonster = !!state.roomMonsters[id];
+    const cleared = state.clearedRooms.has(id);
+    const isSecret = room.secret;
+    btn.innerHTML = `${cleared ? '✅' : hasMonster ? '⚠️' : isSecret ? '❓' : '→'} ${room.label}`;
+    btn.onclick = () => tryMove(id);
+    container.appendChild(btn);
+  });
+}
+
+function updateHpBar() {
+  const p = state.player;
+  const pct = Math.max(0, (p.hp / p.maxHp) * 100);
+  document.getElementById('p-hp-bar').style.width = pct + '%';
+  document.getElementById('p-hp-text').textContent = `${Math.max(0,p.hp)} / ${p.maxHp}`;
+}
+
+// ============================================================
+//  MOVEMENT
+// ============================================================
+function tryMove(roomId) {
+  const p = state.player;
+  if (p.moved) { addLog("You've already moved this turn!", 'log-event'); return; }
+  if (!ROOMS[p.room].connects.includes(roomId)) { addLog("Can't reach that from here!", 'log-event'); return; }
+
+  p.room = roomId;
+  p.moved = true;
+  const room = ROOMS[roomId];
+  addLog(`You move to ${room.label}.`, 'log-move');
+  positionToken();
+
+  // Random surprise in EVERY room (first visit)
+  if (!state.visitedRooms.has(roomId)) {
+    state.visitedRooms.add(roomId);
+    triggerSurprise();
+  }
+
+  // Monster warning
+  if (state.roomMonsters[roomId]) {
+    const m = state.roomMonsters[roomId];
+    addLog(`⚠️ A ${m.name} (HP: ${m.currentHp}) blocks the way!`, 'log-combat');
+  } else if (state.clearedRooms.has(roomId)) {
+    addLog('✅ This room is clear.', 'log-move');
+  }
+
+  updateUI();
+}
+
+function triggerSurprise() {
+  const p = state.player;
+  const surprise = SURPRISES[Math.floor(Math.random() * SURPRISES.length)];
+  const msg = surprise(p);
+  const isGood = msg.includes('+') || msg.includes('restores') || msg.includes('heals') || msg.includes('empowers') || msg.includes('fortifies');
+  addLog(`✨ SURPRISE: ${msg}`, isGood ? 'log-good' : 'log-combat');
+  updateHpBar();
+  if (p.hp <= 0) {
+    p.alive = false;
+    setTimeout(() => triggerEnd(false), 600);
+  }
+}
+
+// ============================================================
+//  COMBAT
+// ============================================================
+function startCombat() {
+  const p = state.player;
+  const ch = CHARACTERS[p.charKey];
+  const m = state.roomMonsters[p.room];
+  if (!m) return;
+
+  p.abilityReady = true;
+  p.abilityUsed = false;
+  combatContext = { roomId: p.room };
+
+  document.getElementById('c-hero-icon').textContent  = ch.sprite;
+  document.getElementById('c-hero-name').textContent  = ch.name;
+  document.getElementById('c-hero-hp').textContent    = `HP: ${p.hp}`;
+  document.getElementById('c-enemy-icon').textContent = m.icon;
+  document.getElementById('c-enemy-name').textContent = m.name;
+  document.getElementById('c-enemy-hp').textContent   = `HP: ${m.currentHp}`;
+  document.getElementById('dice-area').innerHTML      = '<p style="color:var(--parchment-dark)">Roll to attack!</p>';
+  document.getElementById('btn-roll').style.display   = 'inline-block';
+  document.getElementById('btn-ability').style.display= 'inline-block';
+  document.getElementById('btn-ability').disabled     = false;
+  document.getElementById('btn-close-combat').style.display = 'none';
+  document.getElementById('p-ability-info').textContent = `✨ ${ch.ability.name}: ${ch.ability.desc}`;
+
+  document.getElementById('combat-modal').style.display = 'flex';
+}
+
+function useAbility() {
+  const p = state.player;
+  if (!p.abilityReady || p.abilityUsed) return;
+  p.abilityUsed = true;
+  document.getElementById('btn-ability').disabled = true;
+  const ch = CHARACTERS[p.charKey];
+  addLog(`✨ ${ch.name} uses ${ch.ability.name}!`, 'log-event');
+  document.getElementById('dice-area').innerHTML += `<div style="color:#88aaff">✨ ${ch.ability.name} activated!</div>`;
+}
+
+function rollCombat() {
+  const p = state.player;
+  const ch = CHARACTERS[p.charKey];
+  const m = state.roomMonsters[combatContext.roomId];
+  if (!m) return;
+
+  // Hero attacks
+  let heroRoll = Math.ceil(Math.random() * 6) + Math.ceil(Math.random() * 6);
+  let heroDmg = Math.max(0, heroRoll + p.atk - m.def);
+
+  // Ability modifiers
+  if (p.abilityUsed) {
+    if (ch.ability.name === 'Eye Beam')   { heroDmg *= 2; }
+    if (ch.ability.name === 'Hex')        { heroDmg = Math.max(0, heroRoll + p.atk - Math.floor(m.def / 2)); }
+    if (ch.ability.name === 'Fire Breath'){ heroDmg += 6; }
+    if (ch.ability.name === 'Steal')      { heroDmg += Math.floor(m.def / 2); }
+  }
+  m.currentHp = Math.max(0, m.currentHp - heroDmg);
+
+  // Enemy counter-attacks
+  let enemyRoll = Math.ceil(Math.random() * 6) + Math.ceil(Math.random() * 6);
+  let enemyDmg  = Math.max(0, enemyRoll + m.atk - p.def);
+
+  // Ability defensive modifiers
+  let evaded = false;
+  if (p.abilityUsed) {
+    if (ch.ability.name === 'Shield Bash')   { enemyDmg = 0; }
+    if (ch.ability.name === 'Smoke Bomb')    { evaded = true; enemyDmg = 0; }
+    if (ch.ability.name === 'Phase')         { if (Math.random() < 0.5) { evaded = true; enemyDmg = 0; } }
+    if (ch.ability.name === 'Counter Strike'){ heroDmg += Math.max(0, p.def - enemyRoll); m.currentHp = Math.max(0, m.currentHp - Math.max(0, p.def - enemyRoll)); }
+  }
+  p.hp = Math.max(0, p.hp - enemyDmg);
+
+  // Update display
+  document.getElementById('c-hero-hp').textContent  = `HP: ${Math.max(0, p.hp)}`;
+  document.getElementById('c-enemy-hp').textContent = `HP: ${m.currentHp}`;
+  updateHpBar();
+
+  let html = `<div class="dice-roll">🎲 ${heroRoll} &nbsp; 🎲 ${enemyRoll}</div>`;
+  html += `<div>⚔️ You hit for <strong>${heroDmg}</strong> damage!</div>`;
+  if (evaded) html += `<div style="color:#88aaff">💨 You evaded the counter-attack!</div>`;
+  else        html += `<div>💥 ${m.name} hits back for <strong>${enemyDmg}</strong>!</div>`;
+  document.getElementById('dice-area').innerHTML = html;
+
+  // Outcome
+  if (m.currentHp <= 0) {
+    document.getElementById('dice-area').innerHTML += `<div class="combat-outcome" style="color:#88cc88">🏆 ${m.name} defeated!</div>`;
+    state.clearedRooms.add(combatContext.roomId);
+    delete state.roomMonsters[combatContext.roomId];
+    addLog(`💀 ${m.name} defeated!`, 'log-good');
+    document.getElementById('btn-roll').style.display = 'none';
+    document.getElementById('btn-ability').style.display = 'none';
+    document.getElementById('btn-close-combat').style.display = 'inline-block';
+    // Check win
+    if (combatContext.roomId === 'boss') {
+      setTimeout(() => { closeCombat(); triggerEnd(true); }, 800);
+    }
+  } else if (p.hp <= 0) {
+    p.alive = false;
+    document.getElementById('dice-area').innerHTML += `<div class="combat-outcome" style="color:#ff5555">💀 You were defeated!</div>`;
+    addLog(`💀 You were slain in the cave…`, 'log-combat');
+    document.getElementById('btn-roll').style.display = 'none';
+    document.getElementById('btn-ability').style.display = 'none';
+    document.getElementById('btn-close-combat').style.display = 'inline-block';
+  } else {
+    document.getElementById('dice-area').innerHTML += `<div class="combat-outcome">${m.name} has ${m.currentHp} HP left. Roll again!</div>`;
+  }
+}
+
+function closeCombat() {
+  document.getElementById('combat-modal').style.display = 'none';
+  combatContext = null;
+  if (!state.player.alive) { triggerEnd(false); return; }
+  updateUI();
+  positionToken();
+}
+
+// ============================================================
+//  TURN MANAGEMENT
+// ============================================================
+function endTurn() {
+  state.player.moved = false;
+  state.player.abilityReady = false;
+  state.player.abilityUsed = false;
+  state.turn++;
+  addLog(`--- Turn ${state.turn} begins ---`, 'log-event');
+  updateUI();
+}
+
+// ============================================================
+//  WIN / LOSE
+// ============================================================
+function triggerEnd(won) {
+  const ch = CHARACTERS[state.player.charKey];
+  setTimeout(() => {
+    if (won) {
+      document.getElementById('end-icon').textContent  = '🏆';
+      document.getElementById('end-title').textContent = 'VICTORY!';
+      document.getElementById('end-sub').textContent   = `${ch.sprite} ${ch.name} slew the Cave Troll! The cave is yours!`;
+    } else {
+      document.getElementById('end-icon').textContent  = '💀';
+      document.getElementById('end-title').textContent = 'DEFEATED…';
+      document.getElementById('end-sub').textContent   = `${ch.sprite} ${ch.name} fell in the dark. The troll still lurks…`;
+    }
+    document.getElementById('end-screen').style.display = 'flex';
+  }, 500);
+}
+
+// ============================================================
+//  LOG
+// ============================================================
+function addLog(msg, cls='') {
+  const log = document.getElementById('game-log');
+  const el = document.createElement('div');
+  el.className = 'log-entry ' + cls;
+  el.textContent = msg;
+  log.appendChild(el);
+  log.scrollTop = log.scrollHeight;
+}
+</script>
+</body>
+</html>
