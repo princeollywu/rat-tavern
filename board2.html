@@ -1,0 +1,1388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rat Tavern — Board 2: The Sewers</title>
+<style>
+  /* ===== CONFIG ===== */
+  :root {
+    --ink:           #070e07;
+    --slime:         #2d5a14;
+    --slime-bright:  #5db025;
+    --slime-glow:    #90df40;
+    --mud:           #5c3f1a;
+    --mud-light:     #8b6030;
+    --rust:          #7a3010;
+    --stone:         #253525;
+    --stone-light:   #3a5a3a;
+    --toxic:         #a8cc18;
+    --water:         #1a3a4a;
+    --parchment:     #c8e8b0;
+    --parchment-deep:#7a9a60;
+    --player1:       #4a9aff;
+    --player2:       #ff7030;
+    --boss-color:    #5db025;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--ink);
+    font-family: Georgia, serif;
+    color: var(--parchment);
+    min-height: 100vh;
+    overflow-x: hidden;
+    background-image:
+      radial-gradient(ellipse at 20% 80%, #0a2a0a 0%, transparent 55%),
+      radial-gradient(ellipse at 80% 20%, #0a150a 0%, transparent 50%);
+  }
+
+  /* ===== TITLE SCREEN ===== */
+  #title-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 2rem;
+    text-align: center;
+  }
+
+  .drip {
+    font-size: 2.5rem;
+    letter-spacing: 1.5rem;
+    opacity: 0.5;
+    animation: drip 2.5s infinite;
+  }
+  @keyframes drip {
+    0%,100% { opacity: 0.4; transform: translateY(0); }
+    60%      { opacity: 0.7; transform: translateY(4px); }
+  }
+
+  h1.game-title {
+    font-size: clamp(2.5rem, 7vw, 5rem);
+    font-weight: bold;
+    color: var(--slime-bright);
+    text-shadow: 0 0 30px rgba(93,176,37,0.6), 0 0 60px rgba(93,176,37,0.3);
+    letter-spacing: 0.05em;
+    margin: 0.5rem 0;
+  }
+
+  .subtitle {
+    font-size: clamp(1rem, 2.5vw, 1.5rem);
+    color: var(--parchment-deep);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+  }
+
+  .board-label {
+    font-size: clamp(0.85rem, 2vw, 1.1rem);
+    color: var(--toxic);
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    margin-bottom: 2.5rem;
+    opacity: 0.8;
+  }
+
+  .title-lore {
+    font-style: italic;
+    color: var(--parchment-deep);
+    max-width: 480px;
+    font-size: 1rem;
+    line-height: 1.6;
+    margin-bottom: 2.5rem;
+    opacity: 0.85;
+  }
+
+  .mode-btns { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; margin-bottom: 2rem; }
+
+  .btn-mode {
+    padding: 0.9rem 2rem;
+    border: 2px solid var(--slime-bright);
+    background: transparent;
+    color: var(--slime-bright);
+    font-size: 1rem;
+    font-family: Georgia, serif;
+    cursor: pointer;
+    letter-spacing: 0.1em;
+    transition: all 0.2s;
+  }
+  .btn-mode:hover {
+    background: var(--slime-bright);
+    color: var(--ink);
+    box-shadow: 0 0 20px rgba(93,176,37,0.5);
+  }
+
+  .board1-link {
+    font-size: 0.85rem;
+    color: var(--parchment-deep);
+    text-decoration: none;
+    opacity: 0.6;
+    margin-top: 0.5rem;
+    transition: opacity 0.2s;
+  }
+  .board1-link:hover { opacity: 1; color: var(--parchment); }
+
+  /* ===== CHAR SELECT ===== */
+  #char-screen {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 2rem;
+    text-align: center;
+  }
+
+  #char-screen h2 {
+    color: var(--slime-bright);
+    font-size: 1.8rem;
+    margin-bottom: 0.5rem;
+    text-shadow: 0 0 15px rgba(93,176,37,0.4);
+  }
+
+  #char-screen-sub {
+    color: var(--parchment-deep);
+    margin-bottom: 2rem;
+    font-style: italic;
+  }
+
+  .char-grid { display: flex; gap: 2rem; flex-wrap: wrap; justify-content: center; }
+
+  .char-card {
+    background: var(--stone);
+    border: 2px solid var(--stone-light);
+    padding: 1.5rem;
+    width: 180px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+  }
+  .char-card:hover { border-color: var(--slime-bright); box-shadow: 0 0 20px rgba(93,176,37,0.3); }
+  .char-card.selected-p1 { border-color: var(--player1); box-shadow: 0 0 20px rgba(74,154,255,0.4); }
+  .char-card.selected-p2 { border-color: var(--player2); box-shadow: 0 0 20px rgba(255,112,48,0.4); }
+
+  .char-sprite { font-size: 4rem; display: block; margin-bottom: 0.75rem; }
+  .char-name { font-size: 1.2rem; color: var(--parchment); font-weight: bold; margin-bottom: 0.5rem; }
+  .char-stat { font-size: 0.8rem; color: var(--parchment-deep); margin: 0.15rem 0; }
+  .char-ability {
+    margin-top: 0.75rem;
+    padding: 0.5rem;
+    background: rgba(0,0,0,0.3);
+    font-size: 0.75rem;
+    color: var(--toxic);
+    font-style: italic;
+  }
+
+  /* ===== GAME SCREEN ===== */
+  #game-screen {
+    display: none;
+    flex-direction: column;
+    min-height: 100vh;
+    padding: 0.75rem;
+    gap: 0.75rem;
+  }
+
+  .game-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 1rem;
+    background: var(--stone);
+    border: 1px solid var(--slime);
+    font-size: 0.85rem;
+    color: var(--parchment-deep);
+  }
+
+  .game-header strong { color: var(--slime-bright); }
+
+  .game-layout {
+    display: grid;
+    grid-template-columns: 1fr 280px;
+    gap: 0.75rem;
+    flex: 1;
+  }
+  @media (max-width: 700px) {
+    .game-layout { grid-template-columns: 1fr; }
+  }
+
+  /* MAP */
+  .map-container {
+    background: #050d05;
+    border: 2px solid var(--slime);
+    position: relative;
+    overflow: hidden;
+    box-shadow: inset 0 0 40px rgba(0,0,0,0.8);
+  }
+
+  #map-svg { width: 100%; height: auto; display: block; }
+
+  .sewer-pipe {
+    stroke: var(--slime);
+    stroke-width: 6;
+    fill: none;
+    stroke-linecap: round;
+  }
+
+  .room-circle {
+    cursor: default;
+    transition: filter 0.2s;
+  }
+  .room-circle.has-monster-weak   { fill: #3a2810; stroke: #8b6030; stroke-width: 2; }
+  .room-circle.has-monster-medium { fill: #1a3010; stroke: #4a7020; stroke-width: 2; }
+  .room-circle.has-monster-boss   { fill: #0a2a08; stroke: var(--slime-bright); stroke-width: 3;
+                                    filter: drop-shadow(0 0 8px rgba(93,176,37,0.7)); }
+  .room-circle.room-cleared       { fill: #0d200d; stroke: #2a5a2a; stroke-width: 2; opacity: 0.6; }
+  .room-circle.no-monster         { fill: #111f11; stroke: var(--stone-light); stroke-width: 2; }
+
+  .room-label {
+    fill: var(--parchment-deep);
+    font-size: 9px;
+    font-family: Georgia, serif;
+    text-anchor: middle;
+    pointer-events: none;
+  }
+
+  .room-icon {
+    font-size: 14px;
+    text-anchor: middle;
+    dominant-baseline: central;
+    pointer-events: none;
+  }
+
+  /* SIDE PANEL */
+  .side-panel { display: flex; flex-direction: column; gap: 0.6rem; }
+
+  .panel-box {
+    background: var(--stone);
+    border: 1px solid var(--stone-light);
+    padding: 0.75rem;
+  }
+
+  .panel-box h3 {
+    color: var(--slime-bright);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 0.5rem;
+    border-bottom: 1px solid var(--stone-light);
+    padding-bottom: 0.3rem;
+  }
+
+  .player-info { margin-bottom: 0.5rem; }
+  .player-info.active-player { border-left: 3px solid var(--slime-bright); padding-left: 0.5rem; }
+
+  .player-name {
+    font-size: 0.9rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .p1-color { color: var(--player1); }
+  .p2-color { color: var(--player2); }
+
+  .stat-row { font-size: 0.78rem; color: var(--parchment-deep); display: flex; justify-content: space-between; margin-top: 0.2rem; }
+
+  .hp-bar-wrap { background: #0a150a; height: 8px; margin: 0.3rem 0; border: 1px solid #1a3a1a; }
+  .hp-bar { height: 100%; background: linear-gradient(90deg, var(--slime), var(--slime-bright)); transition: width 0.3s; }
+  .hp-text { font-size: 0.75rem; color: var(--parchment-deep); display: flex; justify-content: space-between; }
+
+  .ability-box {
+    margin-top: 0.4rem;
+    padding: 0.3rem 0.5rem;
+    background: rgba(0,0,0,0.3);
+    font-size: 0.75rem;
+    color: var(--toxic);
+    font-style: italic;
+  }
+
+  /* ACTIONS */
+  .action-btns { display: flex; flex-direction: column; gap: 0.4rem; }
+
+  .btn-attack {
+    padding: 0.6rem;
+    background: linear-gradient(135deg, #1a3a10, #2d5a14);
+    border: 1px solid var(--slime);
+    color: var(--slime-glow);
+    font-family: Georgia, serif;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.05em;
+  }
+  .btn-attack:hover:not(:disabled) {
+    background: linear-gradient(135deg, #2d5a14, #4a8a20);
+    box-shadow: 0 0 12px rgba(93,176,37,0.4);
+  }
+  .btn-attack:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  .btn-end {
+    padding: 0.6rem;
+    background: transparent;
+    border: 1px solid var(--stone-light);
+    color: var(--parchment-deep);
+    font-family: Georgia, serif;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-end:hover { border-color: var(--parchment-deep); color: var(--parchment); }
+
+  /* MOVE BUTTONS */
+  #move-btns { display: flex; flex-direction: column; gap: 0.35rem; }
+
+  .move-btn {
+    padding: 0.5rem 0.75rem;
+    background: transparent;
+    border: 1px solid var(--stone-light);
+    color: var(--parchment);
+    font-family: Georgia, serif;
+    font-size: 0.82rem;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s;
+  }
+  .move-btn:hover { background: var(--stone-light); border-color: var(--slime); }
+
+  /* LOG */
+  #game-log {
+    background: #050d05;
+    border: 1px solid var(--stone-light);
+    padding: 0.5rem;
+    height: 130px;
+    overflow-y: auto;
+    font-size: 0.78rem;
+    line-height: 1.5;
+  }
+  #game-log::-webkit-scrollbar { width: 4px; }
+  #game-log::-webkit-scrollbar-track { background: #0a150a; }
+  #game-log::-webkit-scrollbar-thumb { background: var(--slime); }
+
+  .log-move   { color: var(--parchment-deep); }
+  .log-combat { color: #ff9060; }
+  .log-event  { color: var(--toxic); }
+  .log-system { color: var(--slime-bright); font-weight: bold; }
+
+  /* COMBAT MODAL */
+  #combat-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .combat-box {
+    background: var(--stone);
+    border: 2px solid var(--slime-bright);
+    padding: 2rem;
+    max-width: 480px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 0 0 40px rgba(93,176,37,0.3);
+  }
+
+  .combat-box h2 {
+    color: var(--slime-bright);
+    font-size: 1.3rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .combatants {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    margin-bottom: 1.5rem;
+  }
+
+  .combatant { text-align: center; }
+
+  .combatant-sprite {
+    font-size: 3.5rem;
+    display: block;
+    margin-bottom: 0.5rem;
+  }
+
+  .combatant-name { font-size: 0.9rem; color: var(--parchment); margin-bottom: 0.2rem; }
+  .combatant-hp   { font-size: 0.8rem; color: var(--parchment-deep); }
+
+  .vs-text { font-size: 2rem; color: var(--slime-bright); opacity: 0.6; }
+
+  .combat-btns { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
+
+  .btn-combat {
+    padding: 0.65rem 1.5rem;
+    background: linear-gradient(135deg, #1a3a10, #2d5a14);
+    border: 1px solid var(--slime-bright);
+    color: var(--slime-glow);
+    font-family: Georgia, serif;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-combat:hover { background: linear-gradient(135deg, #2d5a14, #4a8a20); }
+
+  .btn-flee {
+    padding: 0.65rem 1.5rem;
+    background: transparent;
+    border: 1px solid var(--stone-light);
+    color: var(--parchment-deep);
+    font-family: Georgia, serif;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-flee:hover { border-color: var(--parchment-deep); color: var(--parchment); }
+
+  #combat-log {
+    background: #050d05;
+    border: 1px solid var(--stone-light);
+    padding: 0.5rem;
+    height: 80px;
+    overflow-y: auto;
+    font-size: 0.8rem;
+    line-height: 1.5;
+    text-align: left;
+    margin-bottom: 1rem;
+  }
+
+  .ability-use-btn {
+    margin-bottom: 0.75rem;
+    padding: 0.5rem 1rem;
+    background: linear-gradient(135deg, #1a3a2a, #1a5a3a);
+    border: 1px solid var(--toxic);
+    color: var(--toxic);
+    font-family: Georgia, serif;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .ability-use-btn:hover { background: linear-gradient(135deg, #2a5a3a, #2a7a4a); }
+  .ability-use-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  /* WIN SCREEN */
+  #win-screen {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.92);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .win-box {
+    background: var(--stone);
+    border: 2px solid var(--slime-bright);
+    padding: 3rem 2rem;
+    max-width: 480px;
+    box-shadow: 0 0 60px rgba(93,176,37,0.4);
+  }
+
+  .win-box h2 { color: var(--slime-bright); font-size: 2rem; margin-bottom: 0.5rem; text-shadow: 0 0 20px rgba(93,176,37,0.6); }
+  .win-box p  { color: var(--parchment-deep); margin-bottom: 1.5rem; font-style: italic; }
+
+  .btn-restart {
+    padding: 0.8rem 2rem;
+    background: linear-gradient(135deg, #1a3a10, #2d5a14);
+    border: 1px solid var(--slime-bright);
+    color: var(--slime-glow);
+    font-family: Georgia, serif;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-restart:hover { box-shadow: 0 0 20px rgba(93,176,37,0.4); }
+
+  .turn-indicator {
+    font-size: 0.8rem;
+    color: var(--parchment-deep);
+    text-align: center;
+    padding: 0.3rem;
+    background: rgba(0,0,0,0.3);
+  }
+  .turn-indicator strong { color: var(--slime-bright); }
+</style>
+</head>
+<body>
+
+<!-- ===== TITLE SCREEN ===== -->
+<div id="title-screen">
+  <div class="drip">💧 💧 💧</div>
+  <h1 class="game-title">Rat Tavern</h1>
+  <p class="subtitle">The Board Game</p>
+  <p class="board-label">⚗️ Board 2 — The Sewers ⚗️</p>
+  <p class="title-lore">
+    Below the tavern lies a labyrinth of dripping tunnels and toxic pools.
+    Something ancient and slimy rules the dark. Descend… if you dare.
+  </p>
+  <div class="mode-btns">
+    <button class="btn-mode" onclick="selectMode('adventure')">🗺️ Adventure Mode<br><small style="font-size:0.75rem;opacity:0.7">Work together. Reach the exit.</small></button>
+    <button class="btn-mode" onclick="selectMode('battle')">⚔️ Battle Mode<br><small style="font-size:0.75rem;opacity:0.7">Fight each other too.</small></button>
+  </div>
+  <a href="index.html" class="board1-link">← Back to Board 1: The Tavern</a>
+</div>
+
+<!-- ===== CHARACTER SELECT ===== -->
+<div id="char-screen">
+  <h2>Choose Your Fighter</h2>
+  <p id="char-screen-sub">Player 1 — pick your fighter!</p>
+  <div class="char-grid">
+    <div class="char-card" id="card-robot" onclick="selectChar('robot')">
+      <span class="char-sprite">🤖</span>
+      <div class="char-name">Robot</div>
+      <div class="char-stat">❤️ HP: 20</div>
+      <div class="char-stat">⚔️ ATK: 3</div>
+      <div class="char-stat">🛡️ DEF: 8</div>
+      <div class="char-ability">🛡️ Shield Bash — block all counter damage this round</div>
+    </div>
+    <div class="char-card" id="card-cyclops" onclick="selectChar('cyclops')">
+      <span class="char-sprite">👁️</span>
+      <div class="char-name">Cyclops</div>
+      <div class="char-stat">❤️ HP: 25</div>
+      <div class="char-stat">⚔️ ATK: 9</div>
+      <div class="char-stat">🛡️ DEF: 7</div>
+      <div class="char-ability">👁️ Eye Beam — double your ATK roll this round</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== GAME SCREEN ===== -->
+<div id="game-screen">
+  <div class="game-header">
+    <span>🐍 <strong>Board 2: The Sewers</strong></span>
+    <span id="turn-display">Turn 1</span>
+    <button class="btn-end" onclick="goBack('title')" style="padding:0.2rem 0.6rem;font-size:0.8rem">✕ Quit</button>
+  </div>
+
+  <div class="game-layout">
+
+    <!-- MAP -->
+    <div class="map-container">
+      <svg id="map-svg" viewBox="0 0 900 500" xmlns="http://www.w3.org/2000/svg">
+
+        <!-- MAP BACKGROUND -->
+        <rect width="900" height="500" fill="#050d05"/>
+        <rect width="900" height="500" fill="url(#sewer-grad)" opacity="0.3"/>
+        <defs>
+          <radialGradient id="sewer-grad" cx="50%" cy="50%" r="70%">
+            <stop offset="0%" stop-color="#1a3a1a" stop-opacity="0.4"/>
+            <stop offset="100%" stop-color="#050d05" stop-opacity="0"/>
+          </radialGradient>
+          <!-- Boss room glow -->
+          <filter id="boss-glow">
+            <feGaussianBlur stdDeviation="4" result="blur"/>
+            <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+          </filter>
+        </defs>
+
+        <!-- Decorative drip lines -->
+        <line x1="150" y1="0" x2="150" y2="30" stroke="#2d5a14" stroke-width="1" opacity="0.3"/>
+        <line x1="500" y1="0" x2="500" y2="50" stroke="#2d5a14" stroke-width="1" opacity="0.2"/>
+        <line x1="750" y1="0" x2="750" y2="20" stroke="#2d5a14" stroke-width="1" opacity="0.25"/>
+
+        <!-- ===== PATHS / PIPES ===== -->
+
+        <!-- drain → ratwarrens -->
+        <line x1="110" y1="430" x2="230" y2="430" class="sewer-pipe"/>
+        <!-- ratwarrens → flooded -->
+        <line x1="290" y1="430" x2="400" y2="430" class="sewer-pipe"/>
+        <!-- ratwarrens → mushroom (diagonal up-left) -->
+        <path d="M 255 400 Q 215 340 210 300" class="sewer-pipe"/>
+        <!-- flooded → pipe (vertical up) -->
+        <line x1="445" y1="400" x2="445" y2="300" class="sewer-pipe"/>
+        <!-- mushroom → sludge (vertical up) -->
+        <line x1="210" y1="260" x2="210" y2="170" class="sewer-pipe"/>
+        <!-- pipe → darkpool (horizontal right) -->
+        <line x1="475" y1="275" x2="590" y2="275" class="sewer-pipe"/>
+        <!-- pipe → overflow (vertical up) -->
+        <line x1="445" y1="255" x2="445" y2="170" class="sewer-pipe"/>
+        <!-- sludge → overflow (horizontal right) -->
+        <line x1="240" y1="145" x2="415" y2="145" class="sewer-pipe"/>
+        <!-- darkpool → slimecave (vertical up) -->
+        <line x1="630" y1="255" x2="630" y2="170" class="sewer-pipe"/>
+        <!-- overflow → slimecave (horizontal right) -->
+        <line x1="475" y1="145" x2="600" y2="145" class="sewer-pipe"/>
+        <!-- slimecave → exit (up-right diagonal) -->
+        <path d="M 655 125 Q 730 80 790 60" class="sewer-pipe" stroke="#5db025" stroke-width="4" stroke-dasharray="8,4"/>
+
+        <!-- ===== ROOM NODES ===== -->
+
+        <!-- START: Drain Entry -->
+        <circle id="room-drain" cx="80" cy="430" r="28" class="room-circle no-monster" fill="#111f11" stroke="#3a5a3a" stroke-width="2"/>
+        <text x="80" y="427" class="room-label" fill="#7a9a60">Drain</text>
+        <text x="80" y="437" class="room-label" fill="#7a9a60">Entry</text>
+        <text x="80" y="472" style="font-size:10px;fill:#4a7a4a;text-anchor:middle">▶ START</text>
+
+        <!-- Rat Warrens (mudcrawler) -->
+        <circle id="room-ratwarrens" cx="260" cy="430" r="30" class="room-circle has-monster-weak"/>
+        <text x="260" y="427" class="room-label">Rat</text>
+        <text x="260" y="438" class="room-label">Warrens</text>
+        <text id="icon-ratwarrens" x="260" y="413" class="room-icon">🟤</text>
+
+        <!-- Flooded Tunnel (mudcrawler) -->
+        <circle id="room-flooded" cx="445" cy="430" r="30" class="room-circle has-monster-weak"/>
+        <text x="445" y="427" class="room-label">Flooded</text>
+        <text x="445" y="438" class="room-label">Tunnel</text>
+        <text id="icon-flooded" x="445" y="413" class="room-icon">🟤</text>
+
+        <!-- Mushroom Cave (sewermutant) -->
+        <circle id="room-mushroom" cx="210" cy="280" r="30" class="room-circle has-monster-medium"/>
+        <text x="210" y="277" class="room-label">Mushroom</text>
+        <text x="210" y="288" class="room-label">Cave</text>
+        <text id="icon-mushroom" x="210" y="263" class="room-icon">🧬</text>
+
+        <!-- Pipe Junction (sewermutant) -->
+        <circle id="room-pipe" cx="445" cy="275" r="30" class="room-circle has-monster-medium"/>
+        <text x="445" y="272" class="room-label">Pipe</text>
+        <text x="445" y="283" class="room-label">Junction</text>
+        <text id="icon-pipe" x="445" y="258" class="room-icon">🧬</text>
+
+        <!-- Dark Pool (mudcrawler) -->
+        <circle id="room-darkpool" cx="630" cy="275" r="30" class="room-circle has-monster-weak"/>
+        <text x="630" y="272" class="room-label">Dark</text>
+        <text x="630" y="283" class="room-label">Pool</text>
+        <text id="icon-darkpool" x="630" y="258" class="room-icon">🟤</text>
+
+        <!-- Sludge Pit (sewermutant) -->
+        <circle id="room-sludge" cx="210" cy="145" r="30" class="room-circle has-monster-medium"/>
+        <text x="210" y="142" class="room-label">Sludge</text>
+        <text x="210" y="153" class="room-label">Pit</text>
+        <text id="icon-sludge" x="210" y="128" class="room-icon">🧬</text>
+
+        <!-- Overflow Drain (no monster, rest spot) -->
+        <circle id="room-overflow" cx="445" cy="145" r="30" class="room-circle no-monster" fill="#101a10" stroke="#2a4a3a" stroke-width="2"/>
+        <text x="445" y="142" class="room-label" fill="#5a8a6a">Overflow</text>
+        <text x="445" y="153" class="room-label" fill="#5a8a6a">Drain</text>
+        <text x="445" y="128" style="font-size:12px;text-anchor:middle">💧</text>
+
+        <!-- BOSS: Slime Cave -->
+        <circle id="room-slimecave" cx="630" cy="145" r="35" class="room-circle has-monster-boss"/>
+        <text x="630" y="140" class="room-label" fill="#90df40">Slime</text>
+        <text x="630" y="152" class="room-label" fill="#90df40">Cave</text>
+        <text id="icon-slimecave" x="630" y="123" style="font-size:18px;text-anchor:middle">🟢</text>
+        <text x="630" y="164" style="font-size:7px;fill:#5db025;text-anchor:middle">👑 BOSS</text>
+
+        <!-- EXIT -->
+        <circle id="room-exit" cx="820" cy="55" r="25" class="room-circle no-monster" fill="#0a1a0a" stroke="#3a7a3a" stroke-width="2" stroke-dasharray="5,3"/>
+        <text x="820" y="52" class="room-label" fill="#5db025">EXIT</text>
+        <text x="820" y="63" style="font-size:9px;fill:#3a7a3a;text-anchor:middle">🚪</text>
+
+        <!-- ===== CHEST ICONS rendered by JS ===== -->
+
+        <!-- ===== PLAYER TOKENS ===== -->
+        <circle id="token-p1" cx="80" cy="430" r="14" fill="var(--player1)" stroke="#fff" stroke-width="2" opacity="0.9"/>
+        <text id="token-p1-label" x="80" y="435" style="font-size:13px;text-anchor:middle;dominant-baseline:middle">🤖</text>
+
+        <circle id="token-p2" cx="80" cy="430" r="14" fill="var(--player2)" stroke="#fff" stroke-width="2" opacity="0.9"/>
+        <text id="token-p2-label" x="80" y="435" style="font-size:13px;text-anchor:middle;dominant-baseline:middle">👁️</text>
+
+      </svg>
+    </div>
+
+    <!-- SIDE PANEL -->
+    <div class="side-panel">
+
+      <!-- PLAYER STATS -->
+      <div class="panel-box">
+        <h3>🧟 Players</h3>
+
+        <div class="player-info" id="p1-info">
+          <div class="player-name p1-color">P1 — <span id="p1-name">—</span></div>
+          <div class="stat-row"><span>Room:</span><span id="p1-room">—</span></div>
+          <div class="stat-row"><span>⚔️ ATK:</span><span id="p1-atk">—</span></div>
+          <div class="stat-row"><span>🛡️ DEF:</span><span id="p1-def">—</span></div>
+          <div class="hp-bar-wrap"><div class="hp-bar" id="p1-hp-bar" style="width:100%"></div></div>
+          <div class="hp-text"><span>HP</span><span id="p1-hp-text">—</span></div>
+          <div class="ability-box" id="p1-ability-box"></div>
+        </div>
+
+        <hr style="border-color:var(--stone-light);margin:0.5rem 0"/>
+
+        <div class="player-info" id="p2-info">
+          <div class="player-name p2-color">P2 — <span id="p2-name">—</span></div>
+          <div class="stat-row"><span>Room:</span><span id="p2-room">—</span></div>
+          <div class="stat-row"><span>⚔️ ATK:</span><span id="p2-atk">—</span></div>
+          <div class="stat-row"><span>🛡️ DEF:</span><span id="p2-def">—</span></div>
+          <div class="hp-bar-wrap"><div class="hp-bar" id="p2-hp-bar" style="width:100%"></div></div>
+          <div class="hp-text"><span>HP</span><span id="p2-hp-text">—</span></div>
+          <div class="ability-box" id="p2-ability-box"></div>
+        </div>
+      </div>
+
+      <!-- MOVE -->
+      <div class="panel-box">
+        <h3>🗺️ Move To</h3>
+        <div id="move-btns"><em style="color:var(--parchment-deep);font-size:0.85rem">Loading…</em></div>
+      </div>
+
+      <!-- ACTIONS -->
+      <div class="panel-box">
+        <h3>⚔️ Actions</h3>
+        <div class="action-btns">
+          <button class="btn-attack" id="btn-attack" onclick="startCombat()" disabled>⚔️ Attack!</button>
+          <button class="btn-end" onclick="endTurn()">End Turn ➜</button>
+        </div>
+        <div class="turn-indicator" id="turn-indicator" style="margin-top:0.5rem">—</div>
+      </div>
+
+      <!-- LOG -->
+      <div class="panel-box" style="flex:1">
+        <h3>📜 Log</h3>
+        <div id="game-log"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ===== COMBAT MODAL ===== -->
+<div id="combat-modal">
+  <div class="combat-box">
+    <h2 id="c-title">⚔️ Combat!</h2>
+    <div class="combatants">
+      <div class="combatant">
+        <span class="combatant-sprite" id="c-attacker-sprite">🤖</span>
+        <div class="combatant-name" id="c-attacker-name">—</div>
+        <div class="combatant-hp" id="c-attacker-hp">—</div>
+      </div>
+      <div class="vs-text">VS</div>
+      <div class="combatant">
+        <span class="combatant-sprite" id="c-defender-sprite">🟤</span>
+        <div class="combatant-name" id="c-defender-name">—</div>
+        <div class="combatant-hp" id="c-defender-hp">—</div>
+      </div>
+    </div>
+    <div id="combat-log"></div>
+    <button class="ability-use-btn" id="btn-ability" onclick="useAbility()">Use Ability</button>
+    <div class="combat-btns">
+      <button class="btn-combat" onclick="doAttack()">⚔️ Strike!</button>
+      <button class="btn-flee" onclick="fleeCombat()">🏃 Flee</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== WIN SCREEN ===== -->
+<div id="win-screen">
+  <div class="win-box">
+    <h2>🟢 Victory!</h2>
+    <p id="win-sub">You escaped the Sewers!</p>
+    <div style="margin-bottom:1.5rem;font-size:3rem">💧🐀💧</div>
+    <button class="btn-restart" onclick="goBack('title')">↩ Back to Title</button>
+  </div>
+</div>
+
+<script>
+// ============================================================
+//  CONFIG
+// ============================================================
+
+const CHARACTERS = {
+  robot: {
+    name: 'Robot', sprite: '🤖',
+    atk: 3, def: 8, maxHp: 20,
+    ability: { name: 'Shield Bash', desc: 'Block all counter-attack damage this round', icon: '🛡️' }
+  },
+  cyclops: {
+    name: 'Cyclops', sprite: '👁️',
+    atk: 9, def: 7, maxHp: 25,
+    ability: { name: 'Eye Beam', desc: 'Double your ATK roll this round', icon: '👁️' }
+  }
+};
+
+// ===== ROOMS =====
+const ROOMS = {
+  drain:      { label: 'Drain Entry',    cx: 80,  cy: 430, monster: null,          connects: ['ratwarrens'] },
+  ratwarrens: { label: 'Rat Warrens',    cx: 260, cy: 430, monster: 'mudcrawler',  connects: ['drain','flooded','mushroom'] },
+  flooded:    { label: 'Flooded Tunnel', cx: 445, cy: 430, monster: 'mudcrawler',  connects: ['ratwarrens','pipe'] },
+  mushroom:   { label: 'Mushroom Cave',  cx: 210, cy: 280, monster: 'sewermutant', connects: ['ratwarrens','sludge'] },
+  pipe:       { label: 'Pipe Junction',  cx: 445, cy: 275, monster: 'sewermutant', connects: ['flooded','darkpool','overflow'] },
+  sludge:     { label: 'Sludge Pit',     cx: 210, cy: 145, monster: 'sewermutant', connects: ['mushroom','overflow'] },
+  darkpool:   { label: 'Dark Pool',      cx: 630, cy: 275, monster: 'mudcrawler',  connects: ['pipe','slimecave'] },
+  overflow:   { label: 'Overflow Drain', cx: 445, cy: 145, monster: null,          connects: ['pipe','sludge','slimecave'] },
+  slimecave:  { label: 'Slime Cave',     cx: 630, cy: 145, monster: 'slimelord',   connects: ['darkpool','overflow','exit'] },
+  exit:       { label: 'EXIT',           cx: 820, cy: 55,  monster: null,          connects: ['slimecave'] }
+};
+
+// ===== MONSTERS =====
+// slimespawn is a temporary monster injected when Slime Lord splits
+const MONSTERS = {
+  mudcrawler:  { name: 'Mud Crawler',  icon: '🟤', hp: 9,  atk: 4,  def: 2 },
+  sewermutant: { name: 'Sewer Mutant', icon: '🧬', hp: 20, atk: 9,  def: 5 },
+  slimelord:   { name: 'Slime Lord',   icon: '🟢', hp: 45, atk: 11, def: 7 },
+  slimespawn:  { name: 'Slime Spawn',  icon: '🟡', hp: 18, atk: 7,  def: 3 }
+};
+
+// ============================================================
+//  GAME STATE
+// ============================================================
+let state = {
+  mode: null,
+  charSelectStep: 1,
+  players: [
+    { charKey: null, hp: 0, maxHp: 0, atk: 0, def: 0, room: 'drain', alive: true, moved: false, abilityReady: false },
+    { charKey: null, hp: 0, maxHp: 0, atk: 0, def: 0, room: 'drain', alive: true, moved: false, abilityReady: false }
+  ],
+  currentPlayer: 0,
+  turn: 1,
+  roomMonsters: {},
+  clearedRooms: new Set(),
+  chests: new Set(),
+  openedChests: new Set(),
+  abilityActive: false,
+  slimeSplit: false   // tracks whether Slime Lord has already split once
+};
+
+// ============================================================
+//  NAVIGATION
+// ============================================================
+function showScreen(id) {
+  ['title-screen','char-screen','game-screen'].forEach(s => {
+    document.getElementById(s).style.display = 'none';
+  });
+  document.getElementById(id).style.display = 'flex';
+}
+
+function goBack(to) {
+  document.getElementById('win-screen').style.display = 'none';
+  document.getElementById('combat-modal').style.display = 'none';
+  if (to === 'title') showScreen('title-screen');
+}
+
+function selectMode(mode) {
+  state.mode = mode;
+  state.charSelectStep = 1;
+  state.players[0].charKey = null;
+  state.players[1].charKey = null;
+  document.querySelectorAll('.char-card').forEach(c => c.classList.remove('selected-p1','selected-p2'));
+  document.getElementById('char-screen-sub').textContent = 'Player 1 — pick your fighter!';
+  showScreen('char-screen');
+}
+
+function selectChar(charKey) {
+  if (state.charSelectStep === 1) {
+    state.players[0].charKey = charKey;
+    document.querySelectorAll('.char-card').forEach(c => c.classList.remove('selected-p1'));
+    document.getElementById('card-' + charKey).classList.add('selected-p1');
+    state.charSelectStep = 2;
+    document.getElementById('char-screen-sub').textContent = 'Player 2 — pick your fighter!';
+  } else {
+    if (charKey === state.players[0].charKey) { alert('Player 2 must pick a different character!'); return; }
+    state.players[1].charKey = charKey;
+    document.querySelectorAll('.char-card').forEach(c => c.classList.remove('selected-p2'));
+    document.getElementById('card-' + charKey).classList.add('selected-p2');
+    setTimeout(startGame, 300);
+  }
+}
+
+// ============================================================
+//  GAME START
+// ============================================================
+function startGame() {
+  for (let i = 0; i < 2; i++) {
+    const ch = CHARACTERS[state.players[i].charKey];
+    state.players[i].hp = ch.maxHp;
+    state.players[i].maxHp = ch.maxHp;
+    state.players[i].atk = ch.atk;
+    state.players[i].def = ch.def;
+    state.players[i].room = 'drain';
+    state.players[i].alive = true;
+    state.players[i].moved = false;
+    state.players[i].abilityReady = false;
+  }
+  state.currentPlayer = 0;
+  state.turn = 1;
+  state.clearedRooms = new Set();
+  state.openedChests = new Set();
+  state.chests = new Set();
+  state.slimeSplit = false;
+  state.abilityActive = false;
+
+  // Place chests in 3 random non-start/exit rooms
+  const chestPool = ['ratwarrens','flooded','mushroom','pipe','sludge','darkpool','overflow'];
+  const shuffled = chestPool.sort(() => Math.random() - 0.5);
+  shuffled.slice(0, 3).forEach(r => state.chests.add(r));
+
+  // Spawn monsters
+  state.roomMonsters = {};
+  Object.entries(ROOMS).forEach(([id, room]) => {
+    if (room.monster) {
+      const m = MONSTERS[room.monster];
+      state.roomMonsters[id] = { ...m, currentHp: m.hp };
+    }
+  });
+
+  document.getElementById('game-log').innerHTML = '';
+  document.getElementById('p1-ability-box').textContent = CHARACTERS[state.players[0].charKey].ability.icon + ' ' + CHARACTERS[state.players[0].charKey].ability.name;
+  document.getElementById('p2-ability-box').textContent = CHARACTERS[state.players[1].charKey].ability.icon + ' ' + CHARACTERS[state.players[1].charKey].ability.name;
+
+  // Set sprite labels on map tokens
+  document.getElementById('token-p1-label').textContent = CHARACTERS[state.players[0].charKey].sprite;
+  document.getElementById('token-p2-label').textContent = CHARACTERS[state.players[1].charKey].sprite;
+
+  addLog('💧 You descend into the Sewers. The smell is overwhelming…', 'log-system');
+  addLog(`P1 is ${CHARACTERS[state.players[0].charKey].name}. P2 is ${CHARACTERS[state.players[1].charKey].name}.`, 'log-system');
+  if (state.mode === 'adventure') addLog('🎯 Goal: Defeat the Slime Lord, then reach the EXIT.', 'log-system');
+  else addLog('🎯 Defeat the Slime Lord OR eliminate the other player!', 'log-system');
+
+  showScreen('game-screen');
+  updateUI();
+}
+
+// ============================================================
+//  LOG
+// ============================================================
+function addLog(msg, cls = 'log-move') {
+  const log = document.getElementById('game-log');
+  const div = document.createElement('div');
+  div.className = cls;
+  div.textContent = msg;
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+}
+
+// ============================================================
+//  UI UPDATE
+// ============================================================
+function updateUI() {
+  const cp = state.currentPlayer;
+  for (let i = 0; i < 2; i++) {
+    const p = state.players[i];
+    const ch = CHARACTERS[p.charKey];
+    document.getElementById(`p${i+1}-name`).textContent = ch.name;
+    document.getElementById(`p${i+1}-room`).textContent = ROOMS[p.room].label;
+    document.getElementById(`p${i+1}-atk`).textContent = p.atk;
+    document.getElementById(`p${i+1}-def`).textContent = p.def;
+    updateHpBar(i);
+    document.getElementById(`p${i+1}-info`).classList.toggle('active-player', i === cp);
+  }
+
+  document.getElementById('turn-display').textContent = `Turn ${state.turn}`;
+  document.getElementById('turn-indicator').innerHTML =
+    `<strong>Player ${cp+1}'s turn</strong> (${CHARACTERS[state.players[cp].charKey].name})`;
+
+  const curPlayer = state.players[cp];
+  const roomMonster = state.roomMonsters[curPlayer.room];
+  const otherPlayer = state.players[1 - cp];
+  const canAttackMonster = !!roomMonster && !curPlayer.moved;
+  const canAttackPlayer = state.mode === 'battle' && curPlayer.room === otherPlayer.room && otherPlayer.alive && !curPlayer.moved;
+  const btn = document.getElementById('btn-attack');
+  btn.disabled = !(canAttackMonster || canAttackPlayer);
+  btn.textContent = (canAttackPlayer && !roomMonster) ? '⚔️ Attack Player!' : '⚔️ Attack!';
+
+  // Update room visuals
+  Object.keys(ROOMS).forEach(id => {
+    const el = document.getElementById('room-' + id);
+    if (!el) return;
+    el.classList.remove('room-cleared','has-monster-weak','has-monster-medium','has-monster-boss','no-monster');
+    if (state.clearedRooms.has(id)) {
+      el.classList.add('room-cleared');
+    } else if (state.roomMonsters[id]) {
+      const mKey = state.roomMonsters[id].name === MONSTERS.mudcrawler.name ? 'weak'
+                 : state.roomMonsters[id].name === MONSTERS.sewermutant.name ? 'medium'
+                 : 'boss';
+      el.classList.add('has-monster-' + mKey);
+    } else {
+      el.classList.add('no-monster');
+    }
+    // Update monster icon
+    const iconEl = document.getElementById('icon-' + id);
+    if (iconEl) {
+      if (state.clearedRooms.has(id)) { iconEl.textContent = '✅'; }
+      else if (state.roomMonsters[id]) { iconEl.textContent = state.roomMonsters[id].icon; }
+      else { iconEl.textContent = ''; }
+    }
+  });
+
+  // Chest icons
+  document.querySelectorAll('.map-chest-icon').forEach(e => e.remove());
+  if (state.chests) {
+    state.chests.forEach(id => {
+      if (state.openedChests.has(id)) return;
+      const room = ROOMS[id];
+      if (!room) return;
+      const svg = document.getElementById('map-svg');
+      const t = document.createElementNS('http://www.w3.org/2000/svg','text');
+      t.setAttribute('x', room.cx + 20);
+      t.setAttribute('y', room.cy - 18);
+      t.setAttribute('text-anchor','middle');
+      t.setAttribute('font-size','13');
+      t.setAttribute('class','map-chest-icon');
+      t.textContent = '📦';
+      svg.appendChild(t);
+    });
+  }
+
+  // Open Chest button
+  const existingChestBtn = document.getElementById('btn-open-chest');
+  if (existingChestBtn) existingChestBtn.remove();
+  const curRoom = curPlayer.room;
+  if (state.chests && state.chests.has(curRoom) && !state.openedChests.has(curRoom)) {
+    const actionBtns = document.querySelector('.action-btns');
+    if (actionBtns) {
+      const chestBtn = document.createElement('button');
+      chestBtn.id = 'btn-open-chest';
+      chestBtn.className = 'btn-attack';
+      chestBtn.style.background = 'linear-gradient(135deg, #3a2a10, #6a5020)';
+      chestBtn.textContent = 'Open Chest 📦';
+      chestBtn.onclick = openChest;
+      actionBtns.appendChild(chestBtn);
+    }
+  }
+
+  positionTokens();
+  buildMoveButtons();
+}
+
+function openChest() {
+  const cp = state.currentPlayer;
+  const curRoom = state.players[cp].room;
+  if (!state.chests.has(curRoom) || state.openedChests.has(curRoom)) return;
+  state.openedChests.add(curRoom);
+  const buffs = ['atk+3','def+3','hp+8'];
+  const buff = buffs[Math.floor(Math.random() * buffs.length)];
+  const p = state.players[cp];
+  let buffDesc = '';
+  if (buff === 'atk+3') { p.atk += 3; buffDesc = '+3 ATK'; }
+  else if (buff === 'def+3') { p.def += 3; buffDesc = '+3 DEF'; }
+  else if (buff === 'hp+8') { p.hp += 8; p.maxHp += 8; buffDesc = '+8 HP'; }
+  addLog(`📦 Player ${cp+1} opened a chest! Gained ${buffDesc}!`, 'log-event');
+  updateUI();
+}
+
+function updateHpBar(idx) {
+  const p = state.players[idx];
+  const pct = Math.max(0, (p.hp / p.maxHp) * 100);
+  document.getElementById(`p${idx+1}-hp-bar`).style.width = pct + '%';
+  document.getElementById(`p${idx+1}-hp-text`).textContent = `${Math.max(0,p.hp)} / ${p.maxHp}`;
+}
+
+function positionTokens() {
+  for (let i = 0; i < 2; i++) {
+    const room = ROOMS[state.players[i].room];
+    const offset = i === 0 ? -12 : 12;
+    const tokenCircle = document.getElementById(`token-p${i+1}`);
+    const tokenLabel  = document.getElementById(`token-p${i+1}-label`);
+    tokenCircle.setAttribute('cx', room.cx + offset);
+    tokenCircle.setAttribute('cy', room.cy + 18);
+    tokenLabel.setAttribute('x', room.cx + offset);
+    tokenLabel.setAttribute('y', room.cy + 19);
+    tokenCircle.style.display = state.players[i].alive ? 'block' : 'none';
+    tokenLabel.style.display  = state.players[i].alive ? 'block' : 'none';
+  }
+}
+
+function buildMoveButtons() {
+  const cp = state.currentPlayer;
+  const curRoom = state.players[cp].room;
+  const container = document.getElementById('move-btns');
+  container.innerHTML = '';
+
+  if (state.players[cp].moved) {
+    container.innerHTML = '<span style="color:var(--parchment-deep);font-style:italic;font-size:0.85rem">Already moved. Attack or end turn.</span>';
+    return;
+  }
+
+  ROOMS[curRoom].connects.forEach(roomId => {
+    const room = ROOMS[roomId];
+    const btn = document.createElement('button');
+    btn.className = 'move-btn';
+    const hasMonster = !!state.roomMonsters[roomId];
+    const isCleared = state.clearedRooms.has(roomId);
+    btn.innerHTML = `${isCleared ? '✅' : hasMonster ? '⚠️' : '→'} ${room.label}`;
+    btn.onclick = () => tryMove(roomId);
+    container.appendChild(btn);
+  });
+}
+
+// ============================================================
+//  MOVEMENT
+// ============================================================
+function tryMove(roomId) {
+  const cp = state.currentPlayer;
+  const curPlayer = state.players[cp];
+
+  if (curPlayer.moved) { addLog("Already moved this turn!", 'log-event'); return; }
+
+  const curRoom = curPlayer.room;
+  if (!ROOMS[curRoom].connects.includes(roomId)) {
+    addLog(`Can't reach ${ROOMS[roomId].label} from here!`, 'log-event'); return;
+  }
+
+  curPlayer.room = roomId;
+  curPlayer.moved = true;
+  addLog(`Player ${cp+1} moved to ${ROOMS[roomId].label}.`, 'log-move');
+
+  positionTokens();
+
+  // Sewer random events
+  if (roomId !== 'exit' && roomId !== 'drain' && !state.roomMonsters[roomId] && Math.random() < 0.25) {
+    triggerRandomEvent(cp);
+  }
+
+  // Exit check
+  if (roomId === 'exit' && state.mode === 'adventure') {
+    if (!state.clearedRooms.has('slimecave')) {
+      addLog('🔒 The exit is sealed. Defeat the Slime Lord first!', 'log-event');
+      curPlayer.room = curRoom;
+      curPlayer.moved = false;
+      positionTokens();
+      updateUI();
+      return;
+    }
+    triggerWin(cp);
+    return;
+  }
+
+  if (state.roomMonsters[roomId]) {
+    const m = state.roomMonsters[roomId];
+    addLog(`⚠️ A ${m.name} (HP: ${m.currentHp}) lurks here!`, 'log-combat');
+  } else if (state.clearedRooms.has(roomId)) {
+    addLog('✅ This room is clear.', 'log-move');
+  }
+
+  const other = state.players[1 - cp];
+  if (state.mode === 'battle' && other.room === roomId && other.alive) {
+    addLog(`⚔️ Player ${cp+1} encountered Player ${2-cp}!`, 'log-combat');
+  }
+
+  updateUI();
+}
+
+function triggerRandomEvent(playerIdx) {
+  const p = state.players[playerIdx];
+  const pName = `Player ${playerIdx+1}`;
+  const events = [
+    () => { p.hp = Math.max(0, p.hp - 4); addLog(`🧪 Toxic fumes sting ${pName}! -4 HP!`, 'log-combat'); },
+    () => { p.hp = Math.min(p.maxHp, p.hp + 8); addLog(`💧 ${pName} finds clean water! +8 HP!`, 'log-event'); },
+    () => { p.atk += 1; addLog(`🍄 A glowing mushroom boosts ${pName}'s power! +1 ATK!`, 'log-event'); },
+    () => { p.def += 2; addLog(`🔮 Ancient rune hardens ${pName}'s skin! +2 DEF!`, 'log-event'); },
+    () => { addLog(`👂 The dripping echoes around you… nothing here.`, 'log-move'); },
+  ];
+  events[Math.floor(Math.random() * events.length)]();
+}
+
+// ============================================================
+//  COMBAT
+// ============================================================
+let combatContext = null;
+
+function startCombat() {
+  const cp = state.currentPlayer;
+  state.players[cp].abilityReady = true;
+  state.abilityActive = false;
+  const curPlayer = state.players[cp];
+  const roomMonster = state.roomMonsters[curPlayer.room];
+  const otherPlayer = state.players[1 - cp];
+  const atkChar = CHARACTERS[curPlayer.charKey];
+
+  document.getElementById('combat-log').innerHTML = '';
+
+  if (roomMonster) {
+    combatContext = { type: 'monster', roomId: curPlayer.room };
+    document.getElementById('c-attacker-sprite').textContent = atkChar.sprite;
+    document.getElementById('c-attacker-name').textContent = atkChar.name;
+    document.getElementById('c-attacker-hp').textContent = `HP: ${curPlayer.hp}`;
+    document.getElementById('c-defender-sprite').textContent = roomMonster.icon;
+    document.getElementById('c-defender-name').textContent = roomMonster.name;
+    document.getElementById('c-defender-hp').textContent = `HP: ${roomMonster.currentHp}`;
+    openCombatModal(`⚔️ Fight the ${roomMonster.name}!`);
+  } else if (state.mode === 'battle' && curPlayer.room === otherPlayer.room && otherPlayer.alive) {
+    combatContext = { type: 'player', target: 1 - cp };
+    document.getElementById('c-attacker-sprite').textContent = atkChar.sprite;
+    document.getElementById('c-attacker-name').textContent = atkChar.name;
+    document.getElementById('c-attacker-hp').textContent = `HP: ${curPlayer.hp}`;
+    const defChar = CHARACTERS[otherPlayer.charKey];
+    document.getElementById('c-defender-sprite').textContent = defChar.sprite;
+    document.getElementById('c-defender-name').textContent = defChar.name;
+    document.getElementById('c-defender-hp').textContent = `HP: ${otherPlayer.hp}`;
+    openCombatModal(`⚔️ Player vs Player!`);
+  }
+}
+
+function openCombatModal(title) {
+  document.getElementById('c-title').textContent = title;
+  const cp = state.currentPlayer;
+  const ch = CHARACTERS[state.players[cp].charKey];
+  const ab = ch.ability;
+  const abilityBtn = document.getElementById('btn-ability');
+  abilityBtn.textContent = `${ab.icon} ${ab.name} — ${ab.desc}`;
+  abilityBtn.disabled = !state.players[cp].abilityReady || state.abilityActive;
+  document.getElementById('combat-modal').style.display = 'flex';
+}
+
+function addCombatLog(msg) {
+  const log = document.getElementById('combat-log');
+  const div = document.createElement('div');
+  div.textContent = msg;
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+}
+
+function useAbility() {
+  const cp = state.currentPlayer;
+  if (!state.players[cp].abilityReady || state.abilityActive) return;
+  state.abilityActive = true;
+  state.players[cp].abilityReady = false;
+  document.getElementById('btn-ability').disabled = true;
+  const ab = CHARACTERS[state.players[cp].charKey].ability;
+  addCombatLog(`✨ ${ab.name} activated!`);
+}
+
+function doAttack() {
+  const cp = state.currentPlayer;
+  const curPlayer = state.players[cp];
+
+  if (combatContext.type === 'monster') {
+    const roomId = combatContext.roomId;
+    const monster = state.roomMonsters[roomId];
+    if (!monster) { closeCombatModal(); return; }
+
+    // Player attacks monster
+    let roll = Math.ceil(Math.random() * 6);
+    if (state.abilityActive && CHARACTERS[curPlayer.charKey].ability.name === 'Eye Beam') roll *= 2;
+    const dmgToMonster = Math.max(1, curPlayer.atk + roll - monster.def);
+    monster.currentHp -= dmgToMonster;
+    addCombatLog(`Player ${cp+1} rolls ${roll} → deals ${dmgToMonster} damage to ${monster.name}! (${Math.max(0,monster.currentHp)} HP left)`);
+    document.getElementById('c-defender-hp').textContent = `HP: ${Math.max(0,monster.currentHp)}`;
+
+    if (monster.currentHp <= 0) {
+      // ===== SLIME LORD SPLIT MECHANIC =====
+      if (monster.name === MONSTERS.slimelord.name && !state.slimeSplit) {
+        state.slimeSplit = true;
+        const spawn = { ...MONSTERS.slimespawn, currentHp: MONSTERS.slimespawn.hp };
+        state.roomMonsters[roomId] = spawn;
+        addCombatLog(`💥 The Slime Lord splits into a Slime Spawn! (HP: ${spawn.currentHp})`);
+        addLog(`🟡 The Slime Lord split! A Slime Spawn remains in the Slime Cave!`, 'log-combat');
+        document.getElementById('c-defender-sprite').textContent = spawn.icon;
+        document.getElementById('c-defender-name').textContent = spawn.name;
+        document.getElementById('c-defender-hp').textContent = `HP: ${spawn.currentHp}`;
+        document.getElementById('c-title').textContent = `⚔️ Fight the Slime Spawn!`;
+        state.abilityActive = false;
+        return;
+      }
+
+      // Normal monster defeat
+      addCombatLog(`💀 ${monster.name} defeated!`);
+      addLog(`✅ Player ${cp+1} defeated the ${monster.name}!`, 'log-event');
+      delete state.roomMonsters[roomId];
+      state.clearedRooms.add(roomId);
+      curPlayer.moved = true;
+      state.abilityActive = false;
+      closeCombatModal();
+      updateUI();
+
+      // Battle mode win: all rooms cleared = adventure win check doesn't apply; let them fight each other
+      return;
+    }
+
+    // Monster counter-attacks
+    const monRoll = Math.ceil(Math.random() * 6);
+    let dmgToPlayer = Math.max(0, monster.atk + monRoll - curPlayer.def);
+    if (state.abilityActive && CHARACTERS[curPlayer.charKey].ability.name === 'Shield Bash') dmgToPlayer = 0;
+    curPlayer.hp -= dmgToPlayer;
+    addCombatLog(`${monster.name} strikes back! Deals ${dmgToPlayer} damage. Player ${cp+1} HP: ${Math.max(0,curPlayer.hp)}`);
+    document.getElementById('c-attacker-hp').textContent = `HP: ${Math.max(0,curPlayer.hp)}`;
+    updateHpBar(cp);
+    state.abilityActive = false;
+
+    if (curPlayer.hp <= 0) {
+      addCombatLog(`💀 Player ${cp+1} was defeated!`);
+      addLog(`💀 Player ${cp+1} was knocked out by the ${monster.name}!`, 'log-combat');
+      curPlayer.alive = false;
+      curPlayer.hp = 0;
+      closeCombatModal();
+      updateUI();
+      checkGameOver();
+      return;
+    }
+
+    document.getElementById('btn-ability').disabled = true; // ability used up or not available
+
+  } else if (combatContext.type === 'player') {
+    const target = combatContext.target;
+    const defender = state.players[target];
+
+    let roll = Math.ceil(Math.random() * 6);
+    if (state.abilityActive && CHARACTERS[curPlayer.charKey].ability.name === 'Eye Beam') roll *= 2;
+    const dmg = Math.max(1, curPlayer.atk + roll - defender.def);
+    defender.hp -= dmg;
+    addCombatLog(`Player ${cp+1} deals ${dmg} damage to Player ${target+1}! (HP: ${Math.max(0,defender.hp)})`);
+    document.getElementById('c-defender-hp').textContent = `HP: ${Math.max(0,defender.hp)}`;
+    updateHpBar(target);
+    state.abilityActive = false;
+    curPlayer.moved = true;
+
+    if (defender.hp <= 0) {
+      defender.alive = false;
+      defender.hp = 0;
+      addCombatLog(`💀 Player ${target+1} is eliminated!`);
+      addLog(`💀 Player ${target+1} was eliminated!`, 'log-combat');
+      closeCombatModal();
+      updateUI();
+      checkGameOver();
+      return;
+    }
+  }
+}
+
+function fleeCombat() {
+  const cp = state.currentPlayer;
+  state.abilityActive = false;
+  addLog(`Player ${cp+1} fled the fight!`, 'log-move');
+  closeCombatModal();
+  updateUI();
+}
+
+function closeCombatModal() {
+  document.getElementById('combat-modal').style.display = 'none';
+}
+
+// ============================================================
+//  TURN MANAGEMENT
+// ============================================================
+function endTurn() {
+  const cp = state.currentPlayer;
+  state.players[cp].moved = false;
+  state.players[cp].abilityReady = false;
+  state.abilityActive = false;
+
+  // Advance to next alive player
+  let next = 1 - cp;
+  if (!state.players[next].alive) next = cp;
+  state.currentPlayer = next;
+  if (next === 0) state.turn++;
+
+  addLog(`─── Player ${next+1}'s turn ───`, 'log-system');
+  updateUI();
+}
+
+// ============================================================
+//  WIN / LOSE
+// ============================================================
+function triggerWin(playerIdx) {
+  const ch = CHARACTERS[state.players[playerIdx].charKey];
+  document.getElementById('win-sub').textContent =
+    `Player ${playerIdx+1} (${ch.name}) escaped the Sewers! Board 2 Complete! 🟢`;
+  document.getElementById('win-screen').style.display = 'flex';
+}
+
+function checkGameOver() {
+  const alivePlayers = state.players.filter(p => p.alive);
+  if (alivePlayers.length === 0) {
+    document.getElementById('win-sub').textContent = 'Both players were defeated by the Sewers…';
+    document.getElementById('win-screen').style.display = 'flex';
+  } else if (alivePlayers.length === 1 && state.mode === 'battle') {
+    const winnerIdx = state.players.indexOf(alivePlayers[0]);
+    triggerWin(winnerIdx);
+  }
+}
+</script>
+</body>
+</html>
