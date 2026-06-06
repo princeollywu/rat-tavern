@@ -671,15 +671,15 @@
         <h2>Board 1</h2>
         <p>The Rat Tavern — defeat the Giant Rat Boss and escape!</p>
       </div>
-      <div class="mode-card" onclick="selectBoard(2)">
+      <div class="mode-card" id="board2-card" onclick="selectBoard(2)" style="opacity:0.4;pointer-events:none;position:relative;">
         <span class="mode-icon">⚗️</span>
-        <h2>Board 2</h2>
-        <p>The Sewers — defeat the Slime Lord and find the exit!</p>
+        <h2>Board 2 🔒</h2>
+        <p>The Sewers — complete Board 1 to unlock!</p>
       </div>
-      <div class="mode-card" onclick="selectBoard(3)">
+      <div class="mode-card" id="board3-card" onclick="selectBoard(3)" style="opacity:0.4;pointer-events:none;position:relative;">
         <span class="mode-icon">🌋</span>
-        <h2>Board 3</h2>
-        <p>Volcano Lair — clear all monsters, survive the eruption, escape!</p>
+        <h2>Board 3 🔒</h2>
+        <p>Volcano Lair — complete Board 2 to unlock!</p>
       </div>
     </div>
   </div>
@@ -1346,6 +1346,21 @@ function goBack(to) {
 
 function selectMode(mode) {
   state.mode = mode;
+  // Unlock boards based on saved progress
+  if (localStorage.getItem('board1complete')) {
+    const b2 = document.getElementById('board2-card');
+    b2.style.opacity = '1';
+    b2.style.pointerEvents = 'auto';
+    b2.querySelector('h2').textContent = 'Board 2';
+    b2.querySelector('p').textContent = 'The Sewers — defeat the Slime Lord and find the exit!';
+  }
+  if (localStorage.getItem('board2complete')) {
+    const b3 = document.getElementById('board3-card');
+    b3.style.opacity = '1';
+    b3.style.pointerEvents = 'auto';
+    b3.querySelector('h2').textContent = 'Board 3';
+    b3.querySelector('p').textContent = 'Volcano Lair — clear all monsters, survive the eruption, escape!';
+  }
   document.getElementById('board-select').style.display = 'flex';
 }
 
@@ -2058,6 +2073,7 @@ function triggerWin(playerIdx, reason) {
       document.getElementById('win-title').textContent = 'VICTORY!';
       document.getElementById('win-sub').textContent = `Player ${playerIdx+1} (${ch.name}) is the last one standing!`;
     } else if (reason === 'adventure') {
+      localStorage.setItem('board1complete', 'true');
       document.getElementById('win-icon').textContent = '🏆';
       document.getElementById('win-title').textContent = 'ESCAPED!';
       document.getElementById('win-sub').textContent = `Board 1 Complete! The sewers await below…`;
@@ -2088,6 +2104,12 @@ function addLog(msg, cls='') {
 //  INIT
 // ============================================================
 showScreen('title-screen');
+// Auto-launch Board 3 if redirected from Board 2
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get('board') === '3' && localStorage.getItem('board2complete')) {
+  selectMode('adventure');
+  selectBoard(3);
+}
 </script>
 </body>
 </html>

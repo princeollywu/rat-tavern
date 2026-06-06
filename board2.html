@@ -775,6 +775,7 @@
     <p id="win-sub">You escaped the Sewers!</p>
     <div style="margin-bottom:1.5rem;font-size:3rem">💧🐀💧</div>
     <button class="btn-restart" onclick="goBack('title')">↩ Back to Title</button>
+    <button class="btn-restart" id="btn-board3" onclick="window.location.href='index.html?board=3'" style="display:none;margin-top:0.75rem;background:linear-gradient(135deg,#3a1a0a,#7a3010);border-color:#c05010;color:#ffa060">🌋 Continue to Board 3</button>
   </div>
 </div>
 
@@ -1367,9 +1368,11 @@ function endTurn() {
 //  WIN / LOSE
 // ============================================================
 function triggerWin(playerIdx) {
+  localStorage.setItem('board2complete', 'true');
   const ch = CHARACTERS[state.players[playerIdx].charKey];
   document.getElementById('win-sub').textContent =
-    `Player ${playerIdx+1} (${ch.name}) escaped the Sewers! Board 2 Complete! 🟢`;
+    `Board 2 Complete! The Volcano Lair awaits… 🌋`;
+  document.getElementById('btn-board3').style.display = 'block';
   document.getElementById('win-screen').style.display = 'flex';
 }
 
