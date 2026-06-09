@@ -1334,6 +1334,60 @@ function doAttack(stance = 'balanced') {
     addCombatLog(`[${stanceLabel}] Player ${cp+1} rolls ${rawRoll}${critNote} → deals ${dmgToMonster} damage to ${monster.name}! (${Math.max(0,monster.currentHp)} HP left)`);
     document.getElementById('c-defender-hp').textContent = `HP: ${Math.max(0,monster.currentHp)}`;
 
+    // Monster counter-attacks (always happens, even if monster is dying)
+    const monRoll = Math.ceil(Math.random() * 6);
+    let dmgToPlayer = Math.max(0, monster.atk + monRoll - (curPlayer.def + stanceMod.def));
+    if (state.abilityActive && CHARACTERS[curPlayer.charKey].ability.name === 'Shield Bash') dmgToPlayer = 0;
+    curPlayer.hp -= dmgToPlayer;
+    addCombatLog(`${monster.name} strikes back! Deals ${dmgToPlayer} damage. Player ${cp+1} HP: ${Math.max(0,curPlayer.hp)}`);
+    document.getElementById('c-attacker-hp').textContent = `HP: ${Math.max(0,curPlayer.hp)}`;
+    updateHpBar(cp);
+    state.abilityActive = false;
+
+    if (monster.currentHp <= 0 && curPlayer.hp <= 0) {
+      // Simultaneous death — higher damage dealer survives with 1 HP
+      if (dmgToMonster >= dmgToPlayer) {
+        // Player dealt more (or equal) — player survives, monster dies
+        curPlayer.hp = 1;
+        document.getElementById('c-attacker-hp').textContent = `HP: 1`;
+        updateHpBar(cp);
+        addCombatLog(`⚡ Mutual blow! You dealt more — you survive with 1 HP! ${monster.name} defeated!`);
+        addLog(`⚡ Simultaneous KO! Player ${cp+1} dealt more — survives with 1 HP!`, 'log-event');
+
+        // ===== SLIME LORD SPLIT MECHANIC =====
+        if (monster.name === MONSTERS.slimelord.name && !state.slimeSplit) {
+          state.slimeSplit = true;
+          const spawn = { ...MONSTERS.slimespawn, currentHp: MONSTERS.slimespawn.hp };
+          state.roomMonsters[roomId] = spawn;
+          addCombatLog(`💥 The Slime Lord splits into a Slime Spawn! (HP: ${spawn.currentHp})`);
+          addLog(`🟡 The Slime Lord split! A Slime Spawn remains in the Slime Cave!`, 'log-combat');
+          document.getElementById('c-defender-sprite').textContent = spawn.icon;
+          document.getElementById('c-defender-name').textContent = spawn.name;
+          document.getElementById('c-defender-hp').textContent = `HP: ${spawn.currentHp}`;
+          document.getElementById('c-title').textContent = `⚔️ Fight the Slime Spawn!`;
+          return;
+        }
+
+        delete state.roomMonsters[roomId];
+        state.clearedRooms.add(roomId);
+        curPlayer.moved = true;
+        closeCombatModal();
+        updateUI();
+      } else {
+        // Monster dealt more — player dies, monster survives with 1 HP
+        monster.currentHp = 1;
+        document.getElementById('c-defender-hp').textContent = `HP: 1`;
+        curPlayer.alive = false;
+        curPlayer.hp = 0;
+        addCombatLog(`⚡ Mutual blow! ${monster.name} dealt more — Player ${cp+1} falls! ${monster.name} survives with 1 HP!`);
+        addLog(`⚡ Simultaneous KO! ${monster.name} dealt more — Player ${cp+1} falls!`, 'log-combat');
+        closeCombatModal();
+        updateUI();
+        checkGameOver();
+      }
+      return;
+    }
+
     if (monster.currentHp <= 0) {
       // ===== SLIME LORD SPLIT MECHANIC =====
       if (monster.name === MONSTERS.slimelord.name && !state.slimeSplit) {
@@ -1346,7 +1400,6 @@ function doAttack(stance = 'balanced') {
         document.getElementById('c-defender-name').textContent = spawn.name;
         document.getElementById('c-defender-hp').textContent = `HP: ${spawn.currentHp}`;
         document.getElementById('c-title').textContent = `⚔️ Fight the Slime Spawn!`;
-        state.abilityActive = false;
         return;
       }
 
@@ -1356,23 +1409,12 @@ function doAttack(stance = 'balanced') {
       delete state.roomMonsters[roomId];
       state.clearedRooms.add(roomId);
       curPlayer.moved = true;
-      state.abilityActive = false;
       closeCombatModal();
       updateUI();
 
       // Battle mode win: all rooms cleared = adventure win check doesn't apply; let them fight each other
       return;
     }
-
-    // Monster counter-attacks
-    const monRoll = Math.ceil(Math.random() * 6);
-    let dmgToPlayer = Math.max(0, monster.atk + monRoll - (curPlayer.def + stanceMod.def));
-    if (state.abilityActive && CHARACTERS[curPlayer.charKey].ability.name === 'Shield Bash') dmgToPlayer = 0;
-    curPlayer.hp -= dmgToPlayer;
-    addCombatLog(`${monster.name} strikes back! Deals ${dmgToPlayer} damage. Player ${cp+1} HP: ${Math.max(0,curPlayer.hp)}`);
-    document.getElementById('c-attacker-hp').textContent = `HP: ${Math.max(0,curPlayer.hp)}`;
-    updateHpBar(cp);
-    state.abilityActive = false;
 
     if (curPlayer.hp <= 0) {
       addCombatLog(`💀 Player ${cp+1} was defeated!`);
