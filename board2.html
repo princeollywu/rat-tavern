@@ -1465,6 +1465,7 @@ function triggerWin(playerIdx) {
 function checkGameOver() {
   const alivePlayers = state.players.filter(p => p.alive);
   if (alivePlayers.length === 0) {
+    document.querySelector('#win-screen .win-box h2').textContent = '💀 Game Over';
     document.getElementById('win-sub').textContent = 'Both players were defeated by the Sewers…';
     document.getElementById('win-screen').style.display = 'flex';
   } else if (alivePlayers.length === 1 && state.mode === 'battle') {

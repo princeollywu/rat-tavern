@@ -2115,6 +2115,8 @@ function checkWinCondition() {
     if (!p0.alive && !p1.alive) { triggerWin(-1, 'draw'); }
     else if (!p0.alive) { triggerWin(1, 'battle'); }
     else if (!p1.alive) { triggerWin(0, 'battle'); }
+  } else {
+    if (!p0.alive && !p1.alive) { triggerWin(-1, 'gameover'); }
   }
 }
 
@@ -2133,7 +2135,11 @@ function triggerWin(playerIdx, reason) {
   const screen = document.getElementById('win-screen');
   if (screen.style.display === 'flex') return;
   setTimeout(() => {
-    if (reason === 'draw') {
+    if (reason === 'gameover') {
+      document.getElementById('win-icon').textContent = '💀';
+      document.getElementById('win-title').textContent = 'GAME OVER';
+      document.getElementById('win-sub').textContent = 'Both players have fallen… The Rat Tavern claims another pair of adventurers.';
+    } else if (reason === 'draw') {
       document.getElementById('win-icon').textContent = '💀';
       document.getElementById('win-title').textContent = 'DRAW!';
       document.getElementById('win-sub').textContent = 'Both fighters fell in the Rat Tavern...';
