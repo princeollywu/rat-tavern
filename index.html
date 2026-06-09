@@ -2004,7 +2004,32 @@ function rollCombat(stance = 'balanced') {
     addLog(`Player ${cp+1} hits ${defName} for ${damage} dmg! (Counter: ${counterDmg} dmg)`, 'log-combat');
     updateHpBar(cp);
 
-    if (m.currentHp <= 0) {
+    if (m.currentHp <= 0 && attacker.hp <= 0) {
+      // Simultaneous death — higher damage dealer survives with 1 HP
+      if (damage >= counterDmg) {
+        // Player dealt more (or equal) — player survives, monster dies
+        attacker.hp = 1;
+        delete state.roomMonsters[combatContext.roomId];
+        state.clearedRooms.add(combatContext.roomId);
+        document.getElementById('c-attacker-hp').textContent = `HP: 1`;
+        updateHpBar(cp);
+        document.getElementById('dice-area').innerHTML += `<div class="combat-outcome">⚡ Mutual blow! You dealt more — you survive with 1 HP! ${defName} defeated!</div>`;
+        addLog(`⚡ Simultaneous KO! Player ${cp+1} dealt more damage — survives with 1 HP!`, 'log-combat');
+        if (combatContext.roomId === 'restaurant') {
+          addLog('🎉 The Giant Rat Boss falls! What a hero!', 'log-win');
+        }
+      } else {
+        // Monster dealt more — player dies, monster survives with 1 HP
+        m.currentHp = 1;
+        attacker.hp = 0; attacker.alive = false;
+        document.getElementById('c-defender-hp').textContent = `HP: 1`;
+        document.getElementById('dice-area').innerHTML += `<div class="combat-outcome" style="color:#ff5555">⚡ Mutual blow! ${defName} dealt more — you fall! ${defName} survives with 1 HP!</div>`;
+        addLog(`⚡ Simultaneous KO! ${defName} dealt more damage — Player ${cp+1} falls!`, 'log-combat');
+      }
+      document.getElementById('btn-roll').style.display = 'none';
+      document.getElementById('btn-ability').style.display = 'none';
+      document.getElementById('btn-close-combat').style.display = 'block';
+    } else if (m.currentHp <= 0) {
       delete state.roomMonsters[combatContext.roomId];
       state.clearedRooms.add(combatContext.roomId);
       document.getElementById('dice-area').innerHTML += `<div class="combat-outcome">🏆 ${defName} defeated! Room cleared!</div>`;
